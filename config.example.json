@@ -1,0 +1,71 @@
+{
+  "workspaceName": "Retailer Data Health Monitor",
+  "clientLabel": "client",
+  "businessUnits": [
+    {
+      "name": "Unit A",
+      "match": "unit[-_ ]?a"
+    },
+    {
+      "name": "Unit B",
+      "match": "unit[-_ ]?b"
+    }
+  ],
+  "accounts": [
+    {
+      "n": "Demo Client AU",
+      "i": "AU",
+      "b": "Unit A",
+      "l": "",
+      "a": "9001",
+      "d": "1001"
+    },
+    {
+      "n": "Demo Client AU (Unit B)",
+      "i": "AU",
+      "b": "Unit B",
+      "l": "",
+      "a": "9002",
+      "d": "1002"
+    },
+    {
+      "n": "Demo Client DE",
+      "i": "DE",
+      "b": "Unit A",
+      "l": "",
+      "a": "9003",
+      "d": "1003"
+    },
+    {
+      "n": "Demo Client BE Dutch",
+      "i": "BE",
+      "b": "Unit A",
+      "l": "dutch",
+      "a": "9004",
+      "d": "1004"
+    },
+    {
+      "n": "Demo Client BE French",
+      "i": "BE",
+      "b": "Unit A",
+      "l": "french",
+      "a": "9005",
+      "d": "1005"
+    }
+  ],
+  "jira": {
+    "baseUrl": "https://jira.example.com",
+    "defaultJql": "project = DEMO AND statusCategory != Done AND Account in (\"1001\", \"1002\", \"1003\") ORDER BY updated DESC"
+  },
+  "links": {
+    "issueTrackerDashboard": ""
+  },
+  "tracker": {
+    "vendorOwnerHeader": "Vendor Owner",
+    "clientOwnerHeader": "Client Owner"
+  },
+  "_help": {
+    "accounts": "n = display name, i = ISO country code (UK not GB), b = business unit name (must match businessUnits[].name), l = optional language tag (dutch/french), a = alternate ID, d = primary account ID (matched against the Jira Account field)",
+    "businessUnits.match": "case-insensitive regex tested against the uploaded report filename"
+  }
+}

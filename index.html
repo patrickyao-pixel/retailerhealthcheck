@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Retailer Data Health Monitor</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<style>
+:root{
+  --bg1:#f4f8ff; --bg2:#eefcf8; --card:#ffffff; --ink:#12263f; --muted:#64748b;
+  --brand:#2563eb; --brand2:#06b6d4; --ok:#10b981; --warn:#f59e0b; --bad:#ef4444;
+  --line:#e2e8f0; --chip:#f1f5f9; --navy:#22306e;
+  --shadow:0 10px 30px rgba(30,64,175,.08);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; font-family:'Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,'Microsoft YaHei',sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #dbeafe 0%, transparent 60%),
+    radial-gradient(1000px 600px at 100% 0%, #ccfbf1 0%, transparent 55%),
+    linear-gradient(180deg,var(--bg1),var(--bg2));
+  min-height:100vh;
+}
+header.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+header.hero::before{content:'';position:absolute;inset:0;background-image:var(--heroimg);background-size:cover;background-position:center 35%;opacity:.28;filter:saturate(1.05)}
+header.hero::after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,rgba(255,255,255,.94) 0%,rgba(255,255,255,.80) 42%,rgba(255,255,255,.42) 100%)}
+.hero-in{position:relative;z-index:2;max-width:1400px;margin:0 auto;padding:30px 28px 0;display:flex;align-items:center;gap:20px}
+.hero-logo{height:56px;border-radius:10px;box-shadow:0 4px 14px rgba(34,48,110,.22);flex:0 0 auto}
+.hero h1{margin:0;font-size:31px;letter-spacing:-.5px;color:#0b1f45;text-shadow:0 1px 0 rgba(255,255,255,.9)}
+.tabs{position:relative;z-index:2;max-width:1400px;margin:0 auto;padding:16px 28px 0;display:flex;gap:6px}
+.tab{padding:11px 22px;border-radius:12px 12px 0 0;background:rgba(255,255,255,.55);border:1px solid transparent;border-bottom:none;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;transition:.15s}
+.tab:hover{background:rgba(255,255,255,.85);color:var(--ink)}
+.tab.on{background:#fff;color:var(--brand);border-color:var(--line);box-shadow:0 -4px 14px rgba(30,64,175,.06)}
+.wrap{max-width:1400px;margin:0 auto;padding:24px 28px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:22px;margin-bottom:20px}
+.card h2{margin:0 0 4px;font-size:17px}
+.card .sub{color:var(--muted);font-size:13px;margin:0 0 16px}
+.drop{border:2px dashed #bfdbfe;border-radius:16px;background:linear-gradient(180deg,#f8fbff,#ffffff);padding:26px;text-align:center;cursor:pointer;transition:.18s}
+.drop:hover,.drop.hot{border-color:var(--brand);background:#eff6ff;transform:translateY(-1px)}
+.drop .ico{font-size:34px}
+.drop .t{font-weight:600;margin-top:8px}
+.drop .s{color:var(--muted);font-size:12.5px;margin-top:4px}
+.slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:14px}
+@media(max-width:860px){.slots{grid-template-columns:1fr}}
+.slot{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#fbfdff;font-size:13px;display:flex;align-items:center;gap:9px}
+.slot .dot{width:9px;height:9px;border-radius:50%;background:#cbd5e1;flex:0 0 auto}
+.slot.filled .dot{background:var(--ok)}
+.slot.filled{background:#f0fdf9;border-color:#a7f3d0}
+.slot .nm{font-weight:600}
+.slot .st{color:var(--muted);font-size:11.5px}
+.filelist{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.fileitem{display:flex;align-items:center;gap:8px;background:var(--chip);border-radius:10px;padding:8px 12px;font-size:13px}
+.fileitem .bu{margin-left:auto;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;color:#fff}
+
+.xbtn{background:none;border:0;color:var(--muted);cursor:pointer;font-size:15px;padding:0 2px}
+.xbtn:hover{color:var(--bad)}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;align-items:end}
+label.lbl{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+select,input[type=text],input[type=number]{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;font-size:13.5px;background:#fff;color:var(--ink)}
+input[type=range]{width:100%}
+.btn{border:0;border-radius:11px;padding:11px 18px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s;text-decoration:none;display:inline-block}
+.btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;box-shadow:0 6px 18px rgba(37,99,235,.28)}
+.btn-primary:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.btn-ghost:hover{background:var(--chip)}
+.btn-ds{background:var(--navy);color:#fff;box-shadow:0 6px 18px rgba(34,48,110,.25)}
+.btn-ds:hover{background:#2c3c88;transform:translateY(-1px)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:14px}
+.kpi{background:linear-gradient(180deg,#fff,#fbfdff);border:1px solid var(--line);border-radius:14px;padding:16px}
+.kpi .n{font-size:28px;font-weight:700;line-height:1.1}
+.kpi .l{font-size:12px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.4px}
+.kpi.bad .n{color:var(--bad)} .kpi.warn .n{color:var(--warn)} .kpi.ok .n{color:var(--ok)} .kpi.blue .n{color:var(--brand)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{position:sticky;top:0;background:#f8fafc;text-align:left;padding:10px;border-bottom:2px solid var(--line);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);z-index:2}
+td{padding:9px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+tr.grp td{background:#eff6ff;font-weight:700;color:#1e40af}
+tbody tr:hover td{background:#f8fbff}
+.tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700}
+.t-crit{background:#fee2e2;color:#b91c1c}.t-norm{background:#dcfce7;color:#15803d}
+.rg{display:inline-block;padding:2px 9px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.rg-APAC{background:#e0f2fe;color:#0369a1}.rg-EMEA{background:#ede9fe;color:#5b21b6}
+.rg-NA{background:#dcfce7;color:#166534}.rg-LATAM{background:#fef3c7;color:#92400e}.rg-N\/A{background:#f1f5f9;color:#64748b}
+.delta-dn{color:var(--bad);font-weight:700}.delta-up{color:var(--ok);font-weight:700}
+.scroll{max-height:640px;overflow:auto;border:1px solid var(--line);border-radius:12px}
+.empty{text-align:center;padding:50px;color:var(--muted)}
+.note{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6}
+code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
+.flexrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.bar{height:6px;border-radius:4px;background:#e2e8f0;overflow:hidden;min-width:60px}
+.bar>i{display:block;height:100%}
+.brg{display:inline-block;padding:2px 9px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap}
+.brg-EM{background:#ffedd5;color:#9a3412}.brg-EU{background:#e0e7ff;color:#3730a3}.brg-NA{background:#dcfce7;color:#166534}
+.brg-JP{background:#fce7f3;color:#9d174d}.brg-NEA{background:#e0f2fe;color:#0369a1}.brg-UN{background:#f1f5f9;color:#64748b}
+.expmods{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 16px;padding:10px 14px;background:#f8fafc;border:1px solid var(--line);border-radius:12px;font-size:13px}
+.expmods .ttl{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-right:4px}
+.mchip{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer;user-select:none;font-weight:600;color:var(--muted);transition:.15s}
+.mchip input{margin:0;accent-color:var(--brand)}
+.mchip.on{border-color:#93c5fd;background:#eff6ff;color:#1e40af}
+.fixedbox{padding:9px 11px;border:1px solid var(--line);border-radius:10px;font-size:13.5px;background:#f8fafc;color:var(--ink)}
+.thbox{margin-top:18px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,#fbfdff,#fff);padding:16px}
+.thhead{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.thtitle{font-size:14px;font-weight:700}
+.thsub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.btn-sm{padding:7px 13px;font-size:12.5px;border-radius:9px}
+.thgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.thcell{border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 13px}
+.thcell.custom{border-color:#93c5fd;background:#f5f9ff}
+.thcell .mn{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px}
+.thcell .mn .dotm{width:8px;height:8px;border-radius:50%;background:var(--brand)}
+.thcell .row2{display:flex;align-items:center;gap:8px;margin-top:9px}
+.thcell input[type=number]{width:80px;padding:7px 9px;font-weight:700;text-align:center}
+.thcell .u{font-size:12px;color:var(--muted)}
+.thcell .rec{font-size:11px;color:var(--muted);margin-top:6px}
+.thpill{display:inline-block;background:#eff6ff;color:#1e40af;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:auto}
+.regchip{display:inline-block;background:#eef2ff;color:#3730a3;border-radius:999px;padding:3px 10px;font-size:11.5px;margin:2px 4px 2px 0;font-weight:600}
+.guide h3{margin:26px 0 8px;font-size:15.5px;color:#0b1f45}
+.guide h3:first-child{margin-top:0}
+.guide p,.guide li{font-size:13.5px;line-height:1.75;color:#334155}
+.guide ol,.guide ul{padding-left:20px;margin:6px 0}
+.guide table{margin:10px 0 4px}
+.guide td{font-size:13px}
+.step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start}
+.step .num{flex:0 0 26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.callout{background:#f0f9ff;border-left:4px solid var(--brand);border-radius:0 10px 10px 0;padding:12px 16px;margin:12px 0;font-size:13px;line-height:1.7}
+.callout.warn{background:#fffbeb;border-color:var(--warn)}
+/* ---------- v5: Jira + tracker sync ---------- */
+.jstat{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;font-size:12.5px;font-weight:600;background:#f1f5f9;color:var(--muted)}
+.jstat i{width:8px;height:8px;border-radius:50%;background:#cbd5e1;display:inline-block}
+.jstat.ok{background:#ecfdf5;color:#047857}.jstat.ok i{background:var(--ok)}
+.jstat.err{background:#fef2f2;color:#b91c1c}.jstat.err i{background:var(--bad)}
+.jstat.busy{background:#eff6ff;color:#1e40af}.jstat.busy i{background:var(--brand)}
+.btn-jira{background:#e8590c;color:#fff;box-shadow:0 6px 18px rgba(232,89,12,.25)}
+.btn-jira:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.bk{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:7px;font-size:11.5px;font-weight:700;margin:1px 3px 1px 0;text-decoration:none;white-space:nowrap;border:1px solid transparent}
+.bk.hit{background:#fff1e6;color:#9a3412;border-color:#fed7aa}
+.bk.oth{background:#f8fafc;color:#475569;border-color:#e2e8f0}
+.bk.trk{background:#fff;color:#7c3aed;border:1px dashed #c4b5fd}
+.bk .s{font-weight:600;opacity:.8}
+.nobk{display:inline-block;padding:2px 8px;border-radius:7px;font-size:11.5px;font-weight:700;background:#fef2f2;color:#b91c1c;cursor:help}
+.nobk-why{display:block;font-size:10.5px;color:var(--muted);font-weight:500;margin-top:3px;max-width:240px;line-height:1.35}
+.plat{display:inline-block;margin-left:5px;padding:0 6px;border-radius:5px;font-size:10px;font-weight:700;vertical-align:middle}
+.plat-app{background:#ecfccb;color:#3f6212}.plat-web{background:#f1f5f9;color:#64748b}
+.mask{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.mask.on{display:flex}
+.tabs{align-items:flex-end}
+.modal{background:#fffaf5;border-radius:20px;max-width:620px;width:100%;max-height:92vh;overflow:auto;padding:26px 28px;box-shadow:0 30px 60px rgba(0,0,0,.25)}
+.modal h3{margin:0 0 4px;font-size:21px;color:#5b3a1e;display:flex;align-items:center;gap:10px}
+.modal .x{margin-left:auto;background:none;border:0;font-size:22px;color:#78716c;cursor:pointer}
+.modal p.d{color:#8b6f55;font-size:13.5px;margin:6px 0 16px;line-height:1.55}
+.modal label.lbl{color:#6b4f35;text-transform:none;letter-spacing:0;font-size:13px}
+.modal input,.modal select,.modal textarea{width:100%;padding:10px 12px;border:1px solid #f1dcc6;border-radius:12px;font-size:13.5px;background:#fff;font-family:inherit}
+.modal textarea{min-height:64px;resize:vertical}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mrow{margin-bottom:12px}
+.mhint{font-size:11.5px;color:#a8896b;margin-top:4px}
+.mnote{background:#fbefe2;border-radius:12px;padding:11px 14px;font-size:12px;color:#8b6f55;line-height:1.55;margin:6px 0 14px}
+.btn-wide{width:100%;padding:13px;font-size:15px;border-radius:14px}
+.rgtabs{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 16px}
+.rgtab{padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted)}
+.rgtab.on{background:#1e40af;border-color:#1e40af;color:#fff}
+.rgtab .c{display:inline-block;margin-left:6px;background:rgba(0,0,0,.08);border-radius:999px;padding:0 7px;font-size:11.5px}
+.rgtab.on .c{background:rgba(255,255,255,.22)}
+.sec{border:1px solid var(--line);border-radius:14px;margin-bottom:16px;overflow:hidden;background:#fff}
+.sec .hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;background:#f8fafc;border-bottom:1px solid var(--line)}
+.sec .hd .t{font-weight:700;font-size:14px}
+.sec .hd .n{font-size:12px;font-weight:700;border-radius:999px;padding:2px 9px;color:#fff}
+.sec .hd .sp{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.sec .bd{max-height:420px;overflow:auto}
+.sec .desc{font-size:12px;color:var(--muted);padding:8px 16px 0}
+.sec table td{font-size:12.5px}
+.n-res{background:var(--ok)}.n-new{background:var(--brand)}.n-reo{background:#e8590c}.n-chk{background:var(--warn)}
+.cellchg{font-family:Consolas,Menlo,monospace;font-size:12px;background:#f1f5f9;border-radius:6px;padding:1px 6px;margin-right:4px;white-space:nowrap}
+.copied{font-size:12px;color:var(--ok);font-weight:600}
+.pchips{display:flex;gap:6px;flex-wrap:wrap}
+tr.dcrit td{background:#fff5f5}
+details.skip{margin:10px 16px 14px;font-size:12.5px;color:var(--muted)}
+details.skip summary{cursor:pointer;font-weight:600}
+details.skip table{margin-top:6px}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-in">
+    <img class="hero-logo" id="heroLogo" alt="" />
+    <h1 id="heroTitle">Retailer Data Health Monitor</h1>
+  </div>
+  <div class="tabs">
+    <div class="tab on" data-tab="monitor">Monitor</div>
+    <div class="tab" data-tab="sync">Jira &amp; Tracker sync</div>
+    <div class="tab" data-tab="guide">User guide</div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;padding-bottom:6px"><span class="jstat" id="cfgStatus"><i></i><span>No workspace config loaded</span></span><button class="btn btn-ghost btn-sm" id="btnCfg">⚙ Workspace config</button></div>
+  </div>
+</header>
+
+<!-- ============ MONITOR TAB ============ -->
+<div class="wrap" id="tab-monitor">
+  <div class="callout warn" id="cfgBanner" style="margin:0 0 18px">
+    <b>Load your private workspace config first.</b> This public site contains no account data. Click <b>⚙ Workspace config</b> and load your <code>config.json</code> (kept only in this browser). Want to try it? Load <a href="config.example.json" download>config.example.json</a>.
+  </div>
+  <div class="card">
+    <h2>1 · Upload weekly reports</h2>
+    <p class="sub">Bulk upload — drop all business-unit files at once.</p>
+    <div class="drop" id="dropScore">
+      <div class="ico">📥</div>
+      <div class="t">Drop the report files here (one per business unit), or click to browse</div>
+      <div class="s">.xlsx / .xls / .json &nbsp;·&nbsp; select multiple files in one go</div>
+      <div class="s">Business unit read from the filename keyword (any case): <span id="buHint">—</span></div>
+    </div>
+    <input type="file" id="fileScore" multiple accept=".xlsx,.xls,.json" style="display:none" />
+    <div class="slots" id="slots"></div>
+    <div class="filelist" id="scoreFiles"></div>
+    <div class="flexrow" style="margin-top:12px"><button class="btn btn-ghost" id="btnClear">Clear all files</button></div>
+    <div class="note" id="regNote"></div>
+  </div>
+
+  <div class="card">
+    <h2>2 · Detection settings</h2>
+    <p class="sub">Change is measured in absolute percentage points: Current score vs PREVIOUS score (P1). P2 columns are ignored.</p>
+    <div class="controls">
+      <div>
+        <label class="lbl">PREVIOUS period</label>
+        <div class="fixedbox"><b>P1</b> — last period &nbsp;<span style="color:var(--muted);font-size:12px">(P2 ignored)</span></div>
+      </div>
+      <div>
+        <label class="lbl">Direction</label>
+        <select id="direction">
+          <option value="drop">Drops only (data loss risk)</option>
+          <option value="both">Any movement</option>
+        </select>
+      </div>
+      <div>
+        <label class="lbl">Account ID source</label>
+        <select id="idSource">
+          <option value="primary">Primary account ID</option>
+          <option value="alt">Alternate account ID</option>
+        </select>
+      </div>
+    </div>
+    <div class="thbox">
+      <div class="thhead">
+        <div>
+          <div class="thtitle">Thresholds by module</div>
+          <div class="thsub">Absolute percentage-point change (Current score vs PREVIOUS score P1) that turns a row Critical. Each module is evaluated against its own threshold.</div>
+        </div>
+        <div class="flexrow">
+          <button class="btn btn-ghost btn-sm" id="btnThReset">↺ Reset to recommended</button>
+          <button class="btn btn-ghost btn-sm" id="btnThAll10">Set all to 10</button>
+        </div>
+      </div>
+      <div class="thgrid" id="thGrid"></div>
+      <div class="note" style="margin-top:12px">
+        <b>Recommended defaults.</b> <b>Search &amp; Content: 5 pts</b> — these metrics are generally expected to stay relatively stable.
+        <b>Availability: 10 pts</b> — a larger threshold absorbs normal fluctuation while still surfacing genuine availability issues.
+        Ratings and Reviews follow the 5 pt convention. Your values are remembered in this browser.
+      </div>
+    </div>
+    <div class="note">
+      <b>Severity rules.</b> Every module of every retailer is listed. <span class="tag t-crit">Critical</span> = current score is blank, or the absolute change breaches <b>that module's</b> threshold.
+      <span class="tag t-norm">Normal</span> = change stays within the threshold, or there is no PREVIOUS value to compare against — no backend check needed.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3 · Jira blockers &amp; Customer Issue Tracker</h2>
+    <p class="sub">Every Critical row is matched to open Jira tickets by <b>Account ID</b> (Jira "Account" field) + <b>retailer keyword</b> + <b>platform</b> (app / web), then ranked by <b>module</b>. Rows that breach a threshold with no open ticket are flagged <span class="nobk">No blocker</span> with the reason underneath.</p>
+    <div class="flexrow">
+      <span class="jstat" id="jStat1"><i></i><span>Jira not connected</span></span>
+      <button class="btn btn-jira" data-open-jira>⚙ Connect Jira</button>
+      <button class="btn btn-ghost" id="btnLoadJira1">↻ Load / refresh Jira tickets</button>
+      <button class="btn btn-ghost" id="btnImportJira1">⇪ Import Jira export instead</button>
+      <input type="file" id="fileJira" accept=".csv,.xlsx,.xls,.json" style="display:none" />
+    </div>
+    <div class="flexrow" style="margin-top:12px">
+      <a class="btn btn-ds" id="dsOpen" target="_blank"
+         href="#" style="display:none">↗ Open Customer Issue Tracker</a>
+      <button class="btn btn-ghost" id="btnCopyIds">⧉ Copy flagged Account IDs</button>
+      <button class="btn btn-ghost" id="btnCopyNoBlk">⧉ Copy Critical rows without blocker</button>
+      <span id="copyOut" style="font-size:12.5px;color:var(--muted)"></span>
+    </div>
+    <div class="note" id="jNote1">Tip: upload the Recovery Tracker in the <b>Jira &amp; Tracker sync</b> tab as well — open tracker rows are then shown as dashed <span class="bk trk">Tracker</span> chips when Jira is not reachable.</div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none">
+    <div class="flexrow" style="justify-content:space-between;margin-bottom:16px">
+      <div>
+        <h2 style="margin:0">4 · Summary</h2>
+        <p class="sub" style="margin:2px 0 0" id="scopeLine"></p>
+      </div>
+      <div class="flexrow">
+        <button class="btn btn-primary" id="btnXlsx">⬇ Export Excel</button>
+        <button class="btn btn-ghost" id="btnRun">↻ Re-run check</button>
+      </div>
+    </div>
+    <div class="expmods" id="expMods"><span class="ttl">Modules to export</span></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="controls" style="margin-top:20px">
+      <div><label class="lbl">Region</label><select id="fRegion"><option value="">All regions</option></select></div>
+      <div><label class="lbl">Country</label><select id="fCountry"><option value="">All countries</option></select></div>
+      <div><label class="lbl">Retailer</label><select id="fRetailer"><option value="">All retailers</option></select></div>
+      <div><label class="lbl">Business unit</label><select id="fBu"><option value="">All units</option></select></div>
+      <div><label class="lbl">Module</label><select id="fModule"><option value="">All modules</option></select></div>
+      <div><label class="lbl">Severity</label><select id="fSev">
+        <option value="">All</option><option value="Critical">Critical only</option><option value="Normal">Normal only</option></select></div>
+      <div><label class="lbl">Jira blocker</label><select id="fBlk">
+        <option value="">All</option><option value="with">Critical with blocker</option><option value="without">Critical without blocker</option></select></div>
+      <div><label class="lbl">Sort by</label><select id="fSort">
+        <option value="sev">Severity</option>
+        <option value="delta">Largest change</option>
+        <option value="region">Region</option>
+        <option value="board">Board region</option>
+        <option value="country">Country A→Z</option>
+        <option value="retailer">Retailer A→Z</option>
+      </select></div>
+    </div>
+    <div class="scroll" style="margin-top:16px">
+      <table>
+        <thead>
+          <tr>
+            <th>Region</th><th>Board region</th><th>Country</th><th>Retailer</th><th>Business unit</th><th>Account ID</th>
+            <th>Module</th><th>Current score</th><th>PREVIOUS score</th><th>Change</th><th>Threshold</th><th>Severity</th><th>Jira blocker</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" id="placeholder">
+    <div class="empty">
+      <div style="font-size:46px">🩺</div>
+      <div style="margin-top:10px;font-size:15px">Upload the weekly reports to start the health check.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SYNC TAB ============ -->
+<div class="wrap" id="tab-sync" style="display:none">
+  <div class="card">
+    <h2>A · Jira connection</h2>
+    <p class="sub">Same connection as the Monitor tab. Tickets are pulled with your JQL, plus every ticket ID already listed in the tracker (so old tickets still get a fresh status).</p>
+    <div class="flexrow">
+      <span class="jstat" id="jStat2"><i></i><span>Jira not connected</span></span>
+      <button class="btn btn-jira" data-open-jira>⚙ Connect Jira</button>
+      <button class="btn btn-ghost" id="btnLoadJira2">↻ Load / refresh Jira tickets</button>
+      <button class="btn btn-ghost" id="btnImportJira2">⇪ Import Jira export instead</button>
+    </div>
+    <div class="note" id="jNote2"></div>
+  </div>
+
+  <div class="card">
+    <h2>B · Upload the Recovery Tracker</h2>
+    <p class="sub">Recovery / issue tracker workbook (.xlsx). Edits are proposed for the <b>Issue Tracker</b> sheet; ticket IDs on <b>Resolved Tickets</b>, <b>Issue Tracker 2</b> and the <b>Note</b> exclude list count as "already tracked".</p>
+    <div class="drop" id="dropTracker">
+      <div class="ico">📋</div>
+      <div class="t">Drop the tracker workbook here, or click to browse</div>
+      <div class="s">Columns are read by header name (row with "Internal Ticket ID"), so column moves are safe</div>
+    </div>
+    <input type="file" id="fileTracker" accept=".xlsx,.xls" style="display:none" />
+    <div class="filelist" id="trackerInfo"></div>
+  </div>
+
+  <div class="card">
+    <h2>C · Compare settings</h2>
+    <div class="controls">
+      <div><label class="lbl">Add-new: ticket created on/after</label><input type="text" id="sSince" placeholder="YYYY-MM-DD" /></div>
+      <div><label class="lbl">Default owner (new rows)</label><input type="text" id="sOwner" placeholder="taken from tracker" /></div>
+      <div><label class="lbl">Closed = Jira status</label><div class="fixedbox"><b>Resolved</b> or <b>Closed</b> <span style="color:var(--muted);font-size:12px">(any other status = open)</span></div></div>
+      <div><label class="lbl">&nbsp;</label><button class="btn btn-primary" id="btnCompare" style="width:100%">⇄ Compare tracker vs Jira</button></div>
+    </div>
+    <div style="margin-top:14px">
+      <label class="lbl">Projects counted for "add new"</label>
+      <div class="pchips" id="sProjects"><span style="color:var(--muted);font-size:12.5px">Load Jira tickets first</span></div>
+    </div>
+  </div>
+
+  <div class="card" id="syncCard" style="display:none">
+    <div class="flexrow" style="justify-content:space-between;margin-bottom:10px">
+      <div>
+        <h2 style="margin:0">D · Manual changes needed</h2>
+        <p class="sub" style="margin:2px 0 0" id="syncScope"></p>
+      </div>
+      <button class="btn btn-primary" id="btnSyncXlsx">⬇ Export change list (Excel)</button>
+    </div>
+    <div class="rgtabs" id="rgTabs"></div>
+    <div id="syncBody"></div>
+  </div>
+</div>
+
+<!-- ============ GUIDE TAB ============ -->
+<div class="wrap guide" id="tab-guide" style="display:none">
+  <div class="card">
+    <h2>User guide</h2>
+    <p class="sub">Weekly retailer data-collection anomaly check — end-to-end workflow.</p>
+
+    <h3>Weekly workflow</h3>
+    <div class="step"><div class="num">1</div><div><b>Download the scorecard exports.</b> Export the Global Scorecard (Two Levels) for each business unit. Keep the business-unit keyword from your config (any case) in the filename — the tool reads the business unit from it. Both <code>.xlsx</code> and <code>.json</code> exports work.</div></div>
+    <div class="step"><div class="num">2</div><div><b>Bulk upload.</b> Select all three files at once, or drag them into the drop zone together. The three slots turn green as each business unit is recognised. Re-uploading the same business unit replaces the previous file.</div></div>
+    <div class="step"><div class="num">3</div><div><b>Set the thresholds.</b> Each module has its own threshold in the <b>Thresholds by module</b> panel — Availability 10 pts, Content / Search / Ratings / Reviews 5 pts by default. Type a new value to override it; the cell is tagged <b>custom</b>, the check re-runs instantly and the value is remembered. <b>Reset to recommended</b> restores the defaults.</div></div>
+    <div class="step"><div class="num">4</div><div><b>Review the summary.</b> Every retailer × module combination is listed. Set the Severity filter to <b>Critical only</b> to get the escalation list; leave it on All to audit the full dataset.</div></div>
+    <div class="step"><div class="num">5</div><div><b>Export &amp; escalate.</b> Download the styled Excel file, then open the Customer Issue Tracker and filter by the Account ID from the export.</div></div>
+
+    <h3>How the change is calculated</h3>
+    <p>Only <b>absolute change</b> is used — the plain difference between the two scores, expressed in percentage points:</p>
+    <div class="callout"><b>Change = Current score − PREVIOUS score (P1)</b><br>
+      Example: Content 92.0% → 82.0% gives a change of <b>−10.0 pts</b>, which breaches the 5-point Content threshold.</div>
+    <p><b>PREVIOUS</b> is always the <b>P1</b> column (last period). P2 columns are ignored, even when the export contains three periods. If a retailer has no P1 score, it is not compared against P2 — it is shown as Normal (no PREVIOUS score). Only headers named exactly <code>&lt;Module&gt; (P1)</code> are read as PREVIOUS.</p>
+
+    <h3>Thresholds by module</h3>
+    <table>
+      <thead><tr><th>Module</th><th>Default</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><b>Search</b></td><td>5 pts</td><td>Generally expected to remain relatively stable, so a small movement is already meaningful.</td></tr>
+        <tr><td><b>Content</b></td><td>5 pts</td><td>Generally expected to remain relatively stable, so a small movement is already meaningful.</td></tr>
+        <tr><td><b>Availability</b></td><td>10 pts</td><td>A larger threshold allows for normal fluctuation while still identifying significant availability issues.</td></tr>
+        <tr><td><b>Ratings</b> / <b>Reviews</b></td><td>5 pts</td><td>Follow the same stable-metric convention.</td></tr>
+      </tbody>
+    </table>
+    <p>The <b>Threshold</b> column shows the value applied to each row; the Excel export includes a <b>Thresholds</b> sheet recording the settings used.</p>
+
+    <h3>Severity rules</h3>
+    <table>
+      <thead><tr><th>Situation</th><th>Severity</th><th>What to do</th></tr></thead>
+      <tbody>
+        <tr><td>Current score is <b>blank</b></td><td><span class="tag t-crit">Critical</span></td><td>Collection has stopped. Always raise with the backend team.</td></tr>
+        <tr><td>Absolute change breaches <b>that module's</b> threshold</td><td><span class="tag t-crit">Critical</span></td><td>Check the retailer for parsing, bot-blocking or catalogue changes.</td></tr>
+        <tr><td>Change stays <b>within</b> that module's threshold</td><td><span class="tag t-norm">Normal</span></td><td>Healthy — no action needed. Listed so you can see the full picture.</td></tr>
+        <tr><td>Current score present, <b>no PREVIOUS</b> value</td><td><span class="tag t-norm">Normal</span></td><td>New or newly tracked retailer — no action needed.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Region mapping</h3>
+    <p>Region is derived from the country name in the report:</p>
+    <table>
+      <tbody>
+        <tr><td><span class="rg rg-APAC">APAC</span></td><td>Australia, New Zealand, India, Indonesia, Malaysia, Philippines, Thailand, Vietnam, Singapore, Japan, China, Hong Kong, Korea, Taiwan</td></tr>
+        <tr><td><span class="rg rg-EMEA">EMEA</span></td><td>All European markets plus UAE, Saudi Arabia, Egypt, Turkey, Kenya, Nigeria, South Africa, Ukraine</td></tr>
+        <tr><td><span class="rg rg-NA">NA</span></td><td>USA, Canada</td></tr>
+        <tr><td><span class="rg rg-LATAM">LATAM</span></td><td>Argentina, Brazil, Chile, Colombia, Mexico, Peru</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn"><b>Note on LATAM.</b> Six markets in the scorecard are Latin American. Folding them into NA would distort the regional view, so they are tagged LATAM separately. If your reporting convention requires them inside NA, tell me and I will merge them.</div>
+
+    <h3>Board region</h3>
+    <p>Board region decides which regional lead to notify. Both live in the same <b>Region</b> filter: the top group lists APAC / EMEA / NA / LATAM, the second group lists the Board regions (e.g. EMEA splits into Emerging Markets and Europe).</p>
+    <table>
+      <tbody>
+        <tr><td><span class="brg brg-EM">Emerging Markets</span></td><td>Argentina, Australia, Brazil, Chile, Colombia, Costa Rica, Ecuador, Egypt, El Salvador, Guatemala, India, Indonesia, Kazakhstan, Kenya, Malaysia, Mexico, Morocco, New Zealand, Nigeria, Peru, Philippines, Russia, Saudi Arabia, Singapore, South Africa, Thailand, Turkey, UAE, Vietnam</td></tr>
+        <tr><td><span class="brg brg-EU">Europe</span></td><td>Austria, Belgium, Bulgaria, Croatia, Czech Republic, Denmark, Finland, France, Germany, Greece, Hungary, Israel, Italy, Netherlands, Poland, Portugal, Romania, Serbia, Slovakia, Slovenia, Spain, Sweden, Switzerland, Ukraine, United Kingdom</td></tr>
+        <tr><td><span class="brg brg-NA">North America</span></td><td>Canada, United States</td></tr>
+        <tr><td><span class="brg brg-JP">Japan</span></td><td>Japan</td></tr>
+        <tr><td><span class="brg brg-NEA">North East Asia</span></td><td>China, Hong Kong, Korea, Taiwan</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Account ID</h3>
+    <p>The account registry is <b>not</b> stored in this site. It lives in your private <code>config.json</code>, which you load once via <b>⚙ Workspace config</b>; it is kept only in your browser (localStorage). Each Country × Business unit resolves to one account; an optional language tag (<code>l</code>) splits markets such as Belgium Dutch / French. Switch between <b>primary</b> and <b>alternate</b> ID in the settings panel.</p>
+
+    <h3>Excel export</h3>
+    <p>Tick the <b>Modules to export</b> chips above the KPIs to choose which modules go into the file (Ratings and Reviews are off by default; your choice is remembered in this browser). The export mirrors whatever is on screen after filtering, with a coloured header row, frozen panes, auto-filter, red highlighting on Critical rows and a second <b>Summary</b> sheet that counts issues by Board region → Region → Country → Retailer.</p>
+
+    <h3>Jira blockers</h3>
+    <p>Click <b>Connect Jira</b>, enter the base URL and Personal Access Token, then <b>Load / refresh Jira tickets</b>. Each <span class="tag t-crit">Critical</span> row is matched to open tickets like this:</p>
+    <table>
+      <thead><tr><th>Step</th><th>Rule</th></tr></thead>
+      <tbody>
+        <tr><td><b>1 · Account</b></td><td>The Jira <b>Account</b> field (numeric account IDs, e.g. <code>1001 1002</code>) must contain the row's account. Alternate IDs are also accepted.</td></tr>
+        <tr><td><b>2 · Retailer keyword</b></td><td>Both names are reduced to a keyword: noise words (<code>www, shop, com, co, au, in, pvt, ltd, infocom, android, app</code>, country codes …) are dropped and the first remaining word is the keyword — <code>Amazon Android Example Pvt Ltd</code> → <b>amazon</b>, <code>Shop.Coles.Com.Au</code> → <b>coles</b>, <code>Flipkart.Com</code> → <b>flipkart</b>. The keyword is looked for in the Retailer field, domains in the summary (<code>amazon.in$android</code>), labels / components, and the summary words.</td></tr>
+        <tr><td><b>3 · Platform</b></td><td>Names containing <code>android</code> / <code>$android</code> / <code>app</code> are <span class="plat plat-app">APP</span>; everything else is <span class="plat plat-web">WEB</span>. An app row only matches app tickets, a web row only web tickets.</td></tr>
+        <tr><td><b>4 · Module</b></td><td>Read from the summary / components / labels (Search, Content, Availability, Ratings, Reviews; RR = both). <b>Pricing</b> / <b>Assortment</b> tickets are matched to <b>Availability</b>. <span class="bk hit">orange</span> = same module, <span class="bk oth">grey</span> = same retailer, other module.</td></tr>
+        <tr><td><b>Open only</b></td><td>A ticket is closed only when its <b>status</b> is <b>Resolved</b> or <b>Closed</b>. The Resolution field is ignored.</td></tr>
+      </tbody>
+    </table>
+    <p>If no ticket matches, the reason is shown under <span class="nobk">⚠ No blocker</span> (no open ticket for the account / ticket exists but on the other platform / no ticket mentions the keyword). If Jira can't be reached, open rows from the uploaded tracker are used as dashed <span class="bk trk">Tracker</span> chips.</p>
+
+    <h3>Jira &amp; Tracker sync</h3>
+    <p>Upload the Recovery Tracker and click <b>Compare</b>. The results are grouped by tracker region (APAC / EMEA / NA/LATAM):</p>
+    <table>
+      <thead><tr><th>Section</th><th>When</th><th>What to copy</th></tr></thead>
+      <tbody>
+        <tr><td><b>Change to Resolved</b></td><td>Row isn't Resolved, but <b>every</b> linked Jira ticket has status Resolved / Closed.</td><td>Cell edits (Status, Actual Resolution, Days Open, Last Updated), using the real Excel row number.</td></tr>
+        <tr><td><b>Reopen / revert</b></td><td>Row is Resolved, but a linked ticket's status is still open (e.g. <i>DEV: Rejected By QA</i>). The <b>Dashboard</b> column flags rows whose retailer is currently Critical.</td><td>Cell edits to set Status back to Open.</td></tr>
+        <tr><td><b>Add new rows</b></td><td>Open ticket with an account from your registry, created on or after the cut-off date, not on any tracker sheet / Note exclude list, <b>and</b> its account + retailer + platform + module is <b>Critical</b> on the dashboard. Others are listed under "skipped".</td><td>Tab-separated rows in the Issue Tracker column order. Paste them into column A of the first empty row.</td></tr>
+        <tr><td><b>Manual check</b></td><td>Only some linked tickets are Resolved / Closed, the ID wasn't returned by Jira, no Jira ID, or the tracker region differs from the account region. Decided on <b>status only</b>.</td><td>Reason list.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn"><b>Browser security (CORS).</b> This page runs locally, so Jira must allow requests from the browser. If you see a CORS / "Failed to fetch" error, use the proxy field or <b>Import Jira export</b>: run the same JQL in Jira → Export → CSV (all fields). The tool then works exactly the same, offline.</div>
+
+    <h3>Troubleshooting</h3>
+    <ul>
+      <li><b>File shows "no Country / Retailer rows found"</b> — the export must contain the <code>First Level</code> and <code>Second Level</code> columns. Re-export as Two Levels.</li>
+      <li><b>Business unit shows "Unknown"</b> — the filename does not contain any business-unit keyword from your config. Rename the file or edit <code>businessUnits[].match</code>.</li>
+      <li><b>Account ID is blank</b> — the country / unit is not in your registry. Add it to <code>accounts</code> in your private config.json and reload it.</li>
+    </ul>
+  </div>
+</div>
+
+
+<!-- ============ CONFIG MODAL ============ -->
+<div class="mask" id="cfgMask">
+  <div class="modal">
+    <h3>⚙ Workspace config <button class="x" id="cfgClose">✕</button></h3>
+    <p class="d">Account registry, business units, Jira defaults and dashboard link are loaded from a private JSON file. It is stored only in this browser — it is never uploaded or committed.</p>
+    <div class="drop" id="dropCfg" style="background:#fff">
+      <div class="ico">🔐</div>
+      <div class="t">Drop your config.json here, or click to browse</div>
+      <div class="s">Template: <a href="config.example.json" download onclick="event.stopPropagation()">config.example.json</a></div>
+    </div>
+    <input type="file" id="fileCfg" accept=".json" style="display:none" />
+    <div id="cfgMsg" style="margin:10px 0;font-size:13px"></div>
+    <div class="mnote">To update accounts later, edit your private config.json and load it again. Use <b>Remove</b> on shared computers.</div>
+    <button class="btn btn-ghost" id="btnCfgClear">Remove config from this browser</button>
+  </div>
+</div>
+
+<!-- ============ JIRA MODAL ============ -->
+<div class="mask" id="jiraMask">
+  <div class="modal">
+    <h3>🎫 Connect Jira <button class="x" id="jClose">✕</button></h3>
+    <p class="d">Connect Jira to link open tickets to Critical retailer rows and to reconcile the Recovery Tracker by region.</p>
+    <div class="mrow"><label class="lbl">Jira Base URL</label>
+      <input id="jBase" placeholder="https://jira.example.com" />
+      <div class="mhint">Use the Jira application root, not a Confluence page URL.</div></div>
+    <div class="mgrid">
+      <div class="mrow"><label class="lbl">Auth type</label>
+        <select id="jAuth"><option value="pat">Personal Access Token (Bearer) — Server / DC</option><option value="basic">Email + API token (Basic) — Cloud</option></select></div>
+      <div class="mrow"><label class="lbl">Email / username · optional for PAT</label><input id="jUser" /></div>
+    </div>
+    <div class="mrow"><label class="lbl">Jira Personal Access Token <span id="jSaved" style="color:#16a34a;font-weight:700"></span></label>
+      <input id="jToken" type="password" autocomplete="off" />
+      <label style="font-size:12px;color:#8b6f55;display:flex;gap:6px;align-items:center;margin-top:6px"><input type="checkbox" id="jRemember" style="width:auto" /> Remember token in this browser (otherwise kept for this tab only)</label></div>
+    <div class="mgrid">
+      <div class="mrow"><label class="lbl">Account field ID</label><input id="jAccField" placeholder="auto-detect (e.g. customfield_12345)" />
+        <div class="mhint">"Number of account (not name)" field</div></div>
+      <div class="mrow"><label class="lbl">Retailer field ID · optional</label><input id="jRetField" placeholder="auto-detect" /></div>
+    </div>
+    <div class="mrow"><label class="lbl">JQL / filtered-view URL for open blockers</label>
+      <textarea id="jJql" placeholder="Paste JQL, or paste the whole Jira filter URL — the jql= part is extracted automatically"></textarea>
+      <div class="mhint">Tickets are kept only if their Account field contains an account from your private registry.</div></div>
+    <div class="mrow"><label class="lbl">CORS proxy prefix · optional</label><input id="jProxy" placeholder="http://127.0.0.1:8787/?url=" />
+      <div class="mhint">Only needed if the browser blocks direct calls (see note below).</div></div>
+    <div class="mnote">The token is stored only in this browser and sent only to your Jira URL. Saving first calls <code>/rest/api/2/myself</code> to verify the connection, then <code>/rest/api/2/field</code> to find the Account field.<br>
+      If Jira blocks browser calls (CORS error), use a proxy, or use <b>Import Jira export</b> — Jira issue search → Export → CSV (all fields) or Excel.</div>
+    <button class="btn btn-jira btn-wide" id="jSave">Save &amp; Test Jira Connection</button>
+    <div id="jMsg" style="margin-top:10px;font-size:13px"></div>
+  </div>
+</div>
+
+<script>
+const state = { reports: [], issues: [] };
+const BANNER_B64 = '';
+const LOGO_B64 = '';
+let ACCOUNTS = [];   /* loaded at runtime from your private config — never committed */
+
+/* =====================================================================
+   Workspace config (private). Nothing client-specific lives in this file.
+   Load your private config.json via "⚙ Workspace config" — it is stored
+   only in this browser (localStorage).
+   ===================================================================== */
+const CFG_KEY = 'rdhm_workspace_cfg';
+const CFG_DEFAULT = {
+  workspaceName: 'Retailer Data Health Monitor',
+  clientLabel: 'client',
+  businessUnits: [
+    { name:'Unit A', match:'unit[-_ ]?a' },
+    { name:'Unit B', match:'unit[-_ ]?b' },
+    { name:'Unit C', match:'unit[-_ ]?c' }
+  ],
+  accounts: [],
+  jira: { baseUrl:'https://jira.example.com', defaultJql:'project = DEMO AND statusCategory != Done ORDER BY updated DESC' },
+  links: { issueTrackerDashboard:'' },
+  tracker: { vendorOwnerHeader:'Vendor Owner', clientOwnerHeader:'Client Owner' }
+};
+let CFG = JSON.parse(JSON.stringify(CFG_DEFAULT));
+let CFG_SOURCE = 'none';
+const BU_COLORS = ['#8b5cf6','#0ea5e9','#10b981','#f59e0b','#ef4444','#14b8a6'];
+const escRe = x => String(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function buIndex(name){ return CFG.businessUnits.findIndex(b => b.name === name); }
+function buStyle(name){ const i = buIndex(name); return `background:${i < 0 ? '#94a3b8' : BU_COLORS[i % BU_COLORS.length]}`; }
+function validateCfg(c){
+  if (!c || typeof c !== 'object') throw new Error('not a JSON object');
+  if (!Array.isArray(c.accounts)) throw new Error('"accounts" must be an array');
+  c.accounts.forEach((a,ix) => { if (!a.i || !a.b || !a.d) throw new Error(`accounts[${ix}] needs i (ISO), b (business unit), d (account id)`); });
+  if (c.businessUnits && !Array.isArray(c.businessUnits)) throw new Error('"businessUnits" must be an array');
+  return c;
+}
+function applyCfg(c, source){
+  CFG = Object.assign(JSON.parse(JSON.stringify(CFG_DEFAULT)), c || {});
+  CFG.jira = Object.assign({}, CFG_DEFAULT.jira, (c||{}).jira || {});
+  CFG.links = Object.assign({}, CFG_DEFAULT.links, (c||{}).links || {});
+  CFG.tracker = Object.assign({}, CFG_DEFAULT.tracker, (c||{}).tracker || {});
+  CFG_SOURCE = source;
+  ACCOUNTS = (CFG.accounts || []).map(a => ({ n:a.n || '', i:String(a.i).toUpperCase(), b:a.b, l:a.l || '', a:String(a.a || ''), d:String(a.d) }));
+  if (typeof ACC_BY_D !== 'undefined'){ for (const k in ACC_BY_D) delete ACC_BY_D[k]; for (const k in ACC_BY_A) delete ACC_BY_A[k];
+    ACCOUNTS.forEach(a => { ACC_BY_D[a.d] = a; if (a.a) ACC_BY_A[a.a] = a; }); }
+  document.title = CFG.workspaceName;
+  const h = document.getElementById('heroTitle'); if (h) h.textContent = CFG.workspaceName;
+  const lk = document.getElementById('dsOpen');
+  if (lk){ if (CFG.links.issueTrackerDashboard){ lk.href = CFG.links.issueTrackerDashboard; lk.style.display = ''; } else lk.style.display = 'none'; }
+  const bh = document.getElementById('buHint');
+  if (bh) bh.innerHTML = CFG.businessUnits.map(b => `<b>${b.name}</b>`).join(' / ');
+  renderCfgStatus();
+}
+function renderCfgStatus(){
+  const el = document.getElementById('cfgStatus'); if (!el) return;
+  const ok = ACCOUNTS.length > 0;
+  el.className = 'jstat ' + (ok ? 'ok' : 'err');
+  el.querySelector('span').textContent = ok ? `Config: ${ACCOUNTS.length} accounts · ${CFG.businessUnits.length} units (${CFG_SOURCE})` : 'No workspace config loaded';
+  const bn = document.getElementById('cfgBanner'); if (bn) bn.style.display = ok ? 'none' : '';
+}
+async function initCfg(){
+  try{ const c = JSON.parse(localStorage.getItem(CFG_KEY)); if (c){ applyCfg(validateCfg(c), 'this browser'); return; } }catch(e){}
+  try{ const r = await fetch('config.json', { cache:'no-store' }); if (r.ok){ applyCfg(validateCfg(await r.json()), 'config.json'); return; } }catch(e){}
+  applyCfg(null, 'none');
+}
+async function importCfgFile(f){
+  const msg = document.getElementById('cfgMsg');
+  try{
+    const c = validateCfg(JSON.parse(await f.text()));
+    localStorage.setItem(CFG_KEY, JSON.stringify(c));
+    applyCfg(c, 'this browser');
+    msg.innerHTML = `<span style="color:#16a34a;font-weight:700">✓ Loaded ${ACCOUNTS.length} accounts from ${f.name}</span>`;
+    loadCfg(); renderRegistry(); renderFiles(); if (state.reports.length) run();
+  }catch(e){ msg.innerHTML = `<span style="color:var(--bad);font-weight:700">✗ ${e.message}</span>`; }
+}
+function clearCfg(){ localStorage.removeItem(CFG_KEY); applyCfg(null, 'none'); renderRegistry(); renderFiles(); document.getElementById('cfgMsg').textContent = 'Config removed from this browser.'; }
+
+const MODULES = ['Availability','Content','Search','Ratings','Reviews'];
+const TH_RECOMMENDED = { Availability:10, Content:5, Search:5, Ratings:5, Reviews:5 };
+const TH_NOTE = {
+  Availability:'Larger threshold — absorbs normal availability fluctuation',
+  Content:'Expected to stay relatively stable',
+  Search:'Expected to stay relatively stable',
+  Ratings:'Follows the 5 pt convention',
+  Reviews:'Follows the 5 pt convention'
+};
+const TH_KEY = 'rdhm_module_thresholds';
+state.thresholds = (()=>{ try{ const s=JSON.parse(localStorage.getItem(TH_KEY)); if(s&&typeof s==='object') return {...TH_RECOMMENDED,...s}; }catch(e){} return {...TH_RECOMMENDED}; })();
+function saveTh(){ try{ localStorage.setItem(TH_KEY, JSON.stringify(state.thresholds)); }catch(e){} }
+function thOf(module){
+  const v = state.thresholds[module];
+  return (typeof v === 'number' && isFinite(v) && v > 0) ? v : (TH_RECOMMENDED[module] ?? 10);
+}
+function renderThresholds(){
+  document.getElementById('thGrid').innerHTML = MODULES.map(m => {
+    const v = thOf(m), rec = TH_RECOMMENDED[m];
+    return `<div class="thcell ${v!==rec?'custom':''}">
+      <div class="mn"><span class="dotm"></span>${m}${v!==rec?'<span class="thpill">custom</span>':''}</div>
+      <div class="row2">
+        <input type="number" id="th-${m}" min="0.5" max="100" step="0.5" value="${v}" />
+        <span class="u">pts change</span>
+      </div>
+      <div class="rec">Recommended ${rec} pts · ${TH_NOTE[m]}</div>
+    </div>`;
+  }).join('');
+  MODULES.forEach(m => {
+    document.getElementById('th-'+m).onchange = e => {
+      const n = parseFloat(e.target.value);
+      state.thresholds[m] = (isFinite(n) && n > 0) ? n : TH_RECOMMENDED[m];
+      saveTh(); renderThresholds(); run();
+    };
+  });
+}
+const ISO = {
+ 'argentina':'AR','australia':'AU','austria':'AT','belgium':'BE','belgium (dutch)':'BE','belgium (french)':'BE',
+ 'brazil':'BR','canada':'CA','chile':'CL','colombia':'CO','czechia':'CZ','czech republic':'CZ','egypt':'EG',
+ 'france':'FR','germany':'DE','greece':'GR','india':'IN','indonesia':'ID','italy':'IT','kenya':'KE','latvia':'LV',
+ 'lithuania':'LT','malaysia':'MY','mexico':'MX','netherlands':'NL','new zealand':'NZ','nigeria':'NG','peru':'PE',
+ 'philippines':'PH','poland':'PL','portugal':'PT','romania':'RO','russia':'RU','saudia arabia':'SA','saudi arabia':'SA',
+ 'south africa':'ZA','spain':'ES','sweden':'SE','switzerland':'CH','thailand':'TH','turkey':'TR','uae':'AE',
+ 'united arab emirates':'AE','uk':'UK','united kingdom':'UK','usa':'US','united states':'US','ukraine':'UA','vietnam':'VN',
+ 'japan':'JP','china':'CN','hong kong':'HK','hong kong, china':'HK','korea':'KR','south korea':'KR','korea, republic of':'KR',
+ 'taiwan':'TW','taiwan, china':'TW','singapore':'SG','russian federation':'RU','costa rica':'CR','ecuador':'EC',
+ 'el salvador':'SV','guatemala':'GT','kazakhstan':'KZ','morocco':'MA','bulgaria':'BG','croatia':'HR','denmark':'DK',
+ 'finland':'FI','hungary':'HU','israel':'IL','serbia':'RS','slovakia':'SK','slovenia':'SI'
+};
+const LANG = { 'belgium (dutch)':'dutch', 'belgium (french)':'french' };
+const REGION = {
+  APAC:['AU','NZ','IN','ID','MY','PH','TH','VN','CN','JP','KR','SG','HK','TW'],
+  EMEA:['AT','BE','CH','CZ','DE','EG','ES','FR','GR','IT','KE','LT','LV','NG','NL','PL','PT','RO','RU','SA','SE','TR','UA','UK','ZA','AE','DK','FI','NO','IE','HU','SK','BG','HR','SI','EE','RS','IL','MA'],
+  NA:['US','CA'],
+  LATAM:['AR','BR','CL','CO','MX','PE','UY','EC','CR','PA','SV','GT']
+};
+const ISO2REGION = {};
+Object.keys(REGION).forEach(r => REGION[r].forEach(c => ISO2REGION[c] = r));
+function regionOf(country){
+  const iso = ISO[String(country).trim().toLowerCase()];
+  return iso ? (ISO2REGION[iso] || 'N/A') : 'N/A';
+}
+const REGION_ORDER = { APAC:0, EMEA:1, NA:2, LATAM:3, 'N/A':4 };
+const BOARD = {
+  'Emerging Markets':['AR','AU','BR','CL','CO','CR','EC','EG','SV','GT','IN','ID','KZ','KE','MY','MX','MA','NZ','NG','PE','PH','RU','SA','SG','ZA','TH','TR','AE','VN'],
+  'Europe':['AT','BE','BG','HR','CZ','DK','FI','FR','DE','GR','HU','IL','IT','NL','PL','PT','RO','RS','SK','SI','ES','SE','CH','UA','UK'],
+  'Japan':['JP'],
+  'North America':['US','CA'],
+  'North East Asia':['CN','HK','KR','TW']
+};
+const ISO2BOARD = {};
+Object.keys(BOARD).forEach(r => BOARD[r].forEach(c => ISO2BOARD[c] = r));
+function boardOf(country){
+  const iso = ISO[String(country).trim().toLowerCase()];
+  return iso ? (ISO2BOARD[iso] || '') : '';
+}
+const BOARD_ORDER = { 'Emerging Markets':0, 'Europe':1, 'North America':2, 'Japan':3, 'North East Asia':4, '':9 };
+function regionMatch(i, val){
+  if (!val) return true;
+  const [t, v] = [val.slice(0,2), val.slice(2)];
+  return t === 'b:' ? i.board === v : i.region === v;
+}
+function fillRegion(list){
+  const el = document.getElementById('fRegion'), prev = el.value;
+  const regs = Object.keys(REGION);
+  const brds = Object.keys(BOARD).sort((a,b)=>BOARD_ORDER[a]-BOARD_ORDER[b]);
+  el.innerHTML = '<option value="">All regions</option>' +
+    '<optgroup label="Region">' + regs.map(r=>`<option value="r:${r}">${r}</option>`).join('') + '</optgroup>' +
+    '<optgroup label="Board region (regional lead)">' + brds.map(b=>`<option value="b:${b}">${b}</option>`).join('') + '</optgroup>';
+  if ([...el.options].some(o=>o.value===prev)) el.value = prev;
+}
+const BOARD_CLS = { 'Emerging Markets':'EM', 'Europe':'EU', 'North America':'NA', 'Japan':'JP', 'North East Asia':'NEA' };
+
+/* ---------- upload ---------- */
+function wireDrop(dropId, inputId, handler){
+  const d = document.getElementById(dropId), i = document.getElementById(inputId);
+  d.onclick = () => i.click();
+  d.ondragover = e => { e.preventDefault(); d.classList.add('hot'); };
+  d.ondragleave = () => d.classList.remove('hot');
+  d.ondrop = e => { e.preventDefault(); d.classList.remove('hot'); handler([...e.dataTransfer.files]); };
+  i.onchange = e => { handler([...e.target.files]); e.target.value=''; };
+}
+wireDrop('dropScore','fileScore', loadScorecards);
+function detectBU(name){
+  const n = name.toLowerCase();
+  for (const b of CFG.businessUnits){
+    let re; try{ re = new RegExp(b.match || escRe(b.name), 'i'); }catch(e){ re = new RegExp(escRe(b.name), 'i'); }
+    if (re.test(n)) return b.name;
+  }
+  return 'Unknown';
+}
+function num(v){
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'number') return isFinite(v) ? v : null;
+  const s = String(v).trim().replace(/%/g,'').replace(/,/g,'');
+  if (s === '' || s === '-' || s.toLowerCase() === 'null' || s.toLowerCase() === 'n/a') return null;
+  const f = parseFloat(s);
+  return isFinite(f) ? f : null;
+}
+async function loadScorecards(files){
+  for (const f of files){
+    let rec;
+    try{
+      const bu = detectBU(f.name);
+      const rows = f.name.toLowerCase().endsWith('.json')
+        ? parseJSON(JSON.parse(await f.text()))
+        : parseXLSX(await f.arrayBuffer());
+      if (!rows.length) throw new Error('no Country / Retailer rows found');
+      rec = { name: f.name, bu, rows, count: rows.length };
+    }catch(err){
+      rec = { name: f.name, bu: detectBU(f.name), rows: [], count: 0, error: err.message };
+    }
+    const k = state.reports.findIndex(r => r.bu === rec.bu && rec.bu !== 'Unknown');
+    if (k >= 0) state.reports[k] = rec; else state.reports.push(rec);
+  }
+  renderFiles(); run();
+}
+const normH = h => String(h ?? '').toLowerCase().replace(/\s+/g,' ').trim();
+function isCurHeader(h, m){ return normH(h) === m.toLowerCase(); }
+function isP1Header(h, m){ return new RegExp('^' + m.toLowerCase() + ' ?\\( ?p ?-?1 ?\\)$').test(normH(h)); }
+function parseJSON(data){
+  const arr = Array.isArray(data) ? data : (data.rows || data.data || []);
+  const out = [];
+  for (const r of arr){
+    const country = r['First Level'] ?? r.Country ?? r.country;
+    const retailer = r['Second Level'] ?? r.Retailer ?? r.retailer;
+    if (!country || !retailer) continue;
+    if (String(retailer).trim().toLowerCase() === 'total') continue;
+    const rec = { country: String(country).trim(), retailer: String(retailer).trim() };
+    for (const m of MODULES){
+      const keys = Object.keys(r);
+      const kc = keys.find(k => isCurHeader(k, m)), k1 = keys.find(k => isP1Header(k, m));
+      rec[m] = kc === undefined ? null : num(r[kc]);
+      rec[m+'_1'] = k1 === undefined ? null : num(r[k1]);
+    }
+    out.push(rec);
+  }
+  return out;
+}
+function parseXLSX(buf){
+  const wb = XLSX.read(buf, { type:'array' });
+  const out = [];
+  for (const sn of wb.SheetNames){
+    const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header:1, defval:null, raw:true });
+    let hdr = -1;
+    for (let i = 0; i < Math.min(aoa.length, 40); i++){
+      const j = (aoa[i]||[]).map(c => String(c ?? '').toLowerCase()).join('|');
+      if (j.includes('first level') && j.includes('second level')) { hdr = i; break; }
+    }
+    if (hdr < 0) continue;
+    const head = (aoa[hdr]||[]).map(c => String(c ?? '').trim());
+    const idx = {}; head.forEach((h,i) => { const k = normH(h); if (k && !(k in idx)) idx[k] = i; });
+    const cCountry = idx['first level'], cRetailer = idx['second level'];
+    let lastCountry = '';
+    for (let r = hdr+1; r < aoa.length; r++){
+      const row = aoa[r]; if (!row) continue;
+      const c = row[cCountry], rt = row[cRetailer];
+      if (c !== null && c !== undefined && String(c).trim() !== '') lastCountry = String(c).trim();
+      if (rt === null || rt === undefined || String(rt).trim() === '') continue;
+      const retailer = String(rt).trim();
+      if (retailer.toLowerCase() === 'total') continue;
+      if (!lastCountry || lastCountry.toLowerCase() === 'total') continue;
+      const rec = { country: lastCountry, retailer };
+      let any = false;
+      for (const m of MODULES){
+        const a = head.findIndex(h => isCurHeader(h, m));
+        const b = head.findIndex(h => isP1Header(h, m));
+        rec[m]      = a < 0 ? null : num(row[a]);
+        rec[m+'_1'] = b < 0 ? null : num(row[b]);
+        if (rec[m] !== null || rec[m+'_1'] !== null) any = true;
+      }
+      if (any) out.push(rec);
+    }
+  }
+  return out;
+}
+
+/* ---------- account matching ---------- */
+function matchAccount(country, bu){
+  const key = String(country).trim().toLowerCase();
+  const iso = ISO[key]; if (!iso) return null;
+  const lang = LANG[key] || '';
+  let pool = ACCOUNTS.filter(a => a.i === iso);
+  if (!pool.length) return null;
+  if (lang){ const l = pool.filter(a => a.l === lang); if (l.length) pool = l; }
+  if (bu && bu !== 'Unknown'){ const b = pool.filter(a => a.b === bu); if (b.length) pool = b; }
+  return pool[0] || null;
+}
+function accIdOf(acc){
+  if (!acc) return '';
+  return document.getElementById('idSource').value === 'alt' ? acc.a : acc.d;
+}
+function renderRegistry(){
+  const byBu = {};
+  ACCOUNTS.forEach(a => { byBu[a.b] = (byBu[a.b]||0)+1; });
+  const isos = [...new Set(ACCOUNTS.map(a => a.i))].sort();
+  document.getElementById('regNote').innerHTML =
+    (ACCOUNTS.length ? `<b>Account registry (private config):</b> ${ACCOUNTS.length} accounts across ${isos.length} markets — ` : '<b style="color:var(--bad)">No account registry loaded</b> — open ⚙ Workspace config and load your private config.json. ') +
+    Object.keys(byBu).sort().map(b => `<span class="regchip">${b} · ${byBu[b]}</span>`).join('');
+}
+function renderFiles(){
+  const BUS = CFG.businessUnits.map(b => b.name);
+  document.getElementById('slots').innerHTML = BUS.map(b => {
+    const r = state.reports.find(x => x.bu === b);
+    return `<div class="slot ${r?'filled':''}"><span class="dot"></span>
+      <div><div class="nm">${b}</div><div class="st">${r ? (r.error ? 'error' : r.count+' retailer rows') : 'waiting for file'}</div></div></div>`;
+  }).join('');
+  document.getElementById('scoreFiles').innerHTML = state.reports.map((r,ix) =>
+    `<div class="fileitem">📊 ${r.name}
+      <span style="color:${r.error?'var(--bad)':'var(--muted)'}">· ${r.error ? 'error: '+r.error : r.count+' rows'}</span>
+      <span class="bu" style="${buStyle(r.bu)}">${r.bu}</span>
+      <button class="xbtn" onclick="removeFile(${ix})" title="remove">✕</button></div>`).join('');
+}
+function removeFile(ix){ state.reports.splice(ix,1); renderFiles(); state.reports.length ? run() : resetView(); }
+function resetView(){
+  state.issues = [];
+  document.getElementById('resultCard').style.display='none';
+  document.getElementById('placeholder').style.display='block';
+}
+
+/* ---------- detection ---------- */
+function run(){
+  if (!state.reports.some(r => r.count)) { resetView(); return; }
+  const base = 'P1';
+  const dir  = document.getElementById('direction').value;
+  const issues = [];
+  for (const rep of state.reports){
+    for (const row of rep.rows){
+      const acc = matchAccount(row.country, rep.bu);
+      for (const m of MODULES){
+        const cur = row[m], p1 = row[m+'_1'];
+        if (cur === null && p1 === null) continue;
+        const thPts = thOf(m), th = thPts / 100;
+        const rec = {
+          region: regionOf(row.country), board: boardOf(row.country), country: row.country, retailer: row.retailer,
+          bu: rep.bu, module: m, cur, p1, file: rep.name, thPts,
+          accId: accIdOf(acc), accName: acc ? acc.n : ''
+        };
+        if (cur === null){
+          rec.severity='Critical'; rec.delta=null;
+          rec.prevVal = p1;
+          rec.reason='Current period score is blank — data collection stopped';
+          issues.push(rec); continue;
+        }
+        if (p1 === null){
+          rec.severity='Normal'; rec.delta=null; rec.prevVal=null;
+          rec.reason='No PREVIOUS (P1) score to compare — new or newly tracked retailer';
+          issues.push(rec); continue;
+        }
+        const b = p1;
+        const abs = cur - b;
+        rec.prevVal = b; rec.delta = abs;
+        const breaches = Math.abs(abs) >= th - 1e-9 && !(dir === 'drop' && abs >= 0);
+        if (breaches){
+          rec.severity = 'Critical';
+          rec.reason = `Absolute change of ${(abs*100).toFixed(1)} pts vs PREVIOUS (${base}) — breaches the ${thPts} pt ${m} threshold`;
+        } else {
+          rec.severity = 'Normal';
+          rec.reason = (dir === 'drop' && abs > 0)
+            ? `Score improved by ${(abs*100).toFixed(1)} pts vs PREVIOUS (${base})`
+            : `Change of ${(abs*100).toFixed(1)} pts is within the ${thPts} pt ${m} threshold`;
+        }
+        issues.push(rec);
+      }
+    }
+  }
+  state.issues = issues;
+  attachBlockers();
+  render();
+  if (J.sync && J.tracker && J.issues.length) compareTracker();
+}
+
+/* ---------- rendering ---------- */
+function fmt(v){ return v===null||v===undefined ? '—' : (v*100).toFixed(1)+'%'; }
+function render(){
+  document.getElementById('placeholder').style.display='none';
+  document.getElementById('resultCard').style.display='block';
+  const list = state.issues;
+  const totalRows = state.reports.reduce((a,r)=>a+r.count,0);
+  const crit = list.filter(i=>i.severity==='Critical');
+  const blank = crit.filter(i=>i.cur===null).length;
+  const pairs = new Set(crit.map(i=>i.country+'|'+i.retailer+'|'+i.bu));
+  const regions = new Set(crit.map(i=>i.region));
+  const mapped = new Set(list.filter(i=>i.accId).map(i=>i.accId));
+  document.getElementById('scopeLine').textContent =
+    `${state.reports.length} report(s) · ${totalRows} retailer rows scanned · thresholds ${MODULES.map(m=>m+' '+thOf(m)).join(' · ')} pts · Current score vs PREVIOUS score (P1)`;
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi bad"><div class="n">${crit.length}</div><div class="l">Critical flags</div></div>
+    <div class="kpi bad"><div class="n">${pairs.size}</div><div class="l">Retailers to check</div></div>
+    <div class="kpi warn"><div class="n">${blank}</div><div class="l">Blank current score</div></div>
+    <div class="kpi blue"><div class="n">${regions.size}</div><div class="l">Regions affected</div></div>
+    <div class="kpi ok"><div class="n">${list.length-crit.length}</div><div class="l">Normal (within threshold)</div></div>
+    <div class="kpi ok"><div class="n">${mapped.size}</div><div class="l">Accounts matched</div></div>`;
+  document.getElementById('kpis').insertAdjacentHTML('beforeend', blockerKpis(list));
+  fillRegion(list);
+  fill('fCountry',[...new Set(list.map(i=>i.country))].sort(),'All countries');
+  fill('fRetailer',[...new Set(list.map(i=>i.retailer))].sort(),'All retailers');
+  fill('fBu',[...new Set(list.map(i=>i.bu))].sort(),'All units');
+  fill('fModule',[...new Set(list.map(i=>i.module))].sort(),'All modules');
+  renderTable();
+}
+function fill(id,vals,allLabel){
+  const el=document.getElementById(id), prev=el.value;
+  el.innerHTML=`<option value="">${allLabel}</option>`+vals.map(v=>`<option>${v}</option>`).join('');
+  if (vals.includes(prev)) el.value=prev;
+}
+function currentView(){
+  const g=id=>document.getElementById(id).value;
+  const fg=g('fRegion'),fc=g('fCountry'),fr=g('fRetailer'),fb=g('fBu'),fm=g('fModule'),fs=g('fSev'),so=g('fSort'),fk=g('fBlk');
+  let v=state.issues.filter(i=>
+    regionMatch(i,fg)&&(!fc||i.country===fc)&&(!fr||i.retailer===fr)&&
+    (!fb||i.bu===fb)&&(!fm||i.module===fm)&&(!fs||i.severity===fs)&&
+    (!fk||(i.severity==='Critical'&&((i.blockers||[]).length>0)===(fk==='with'))));
+  v.sort((a,b)=>{
+    if(so==='delta') return Math.abs(b.delta??9)-Math.abs(a.delta??9);
+    if(so==='region') return REGION_ORDER[a.region]-REGION_ORDER[b.region]||a.country.localeCompare(b.country)||a.retailer.localeCompare(b.retailer);
+    if(so==='board') return BOARD_ORDER[a.board]-BOARD_ORDER[b.board]||a.country.localeCompare(b.country)||a.retailer.localeCompare(b.retailer);
+    if(so==='country') return a.country.localeCompare(b.country)||a.retailer.localeCompare(b.retailer);
+    if(so==='retailer') return a.retailer.localeCompare(b.retailer)||a.country.localeCompare(b.country);
+    const s=(x)=>x==='Critical'?0:1;
+    return s(a.severity)-s(b.severity)||Math.abs(b.delta??9)-Math.abs(a.delta??9);
+  });
+  return v;
+}
+function renderTable(){
+  const v=currentView(), tb=document.getElementById('tbody');
+  if(!v.length){ tb.innerHTML=`<tr><td colspan="13" class="empty">✅ Nothing breaches the current thresholds.</td></tr>`; return; }
+  const so=document.getElementById('fSort').value;
+  let html='',last='';
+  for(const i of v){
+    if(so==='region'&&i.region!==last){ html+=`<tr class="grp"><td colspan="13">${i.region}</td></tr>`; last=i.region; }
+    if(so==='board'&&i.board!==last){ html+=`<tr class="grp"><td colspan="13">${i.board||'—'}</td></tr>`; last=i.board; }
+    if(so==='country'&&i.country!==last){ html+=`<tr class="grp"><td colspan="13">${i.country}</td></tr>`; last=i.country; }
+    const d = i.delta===null ? '<span style="color:var(--muted)">—</span>'
+      : `<span class="${i.delta<0?'delta-dn':'delta-up'}">${i.delta<0?'▼':'▲'} ${Math.abs(i.delta*100).toFixed(1)} pts</span>`;
+    const bw=i.cur===null?0:Math.round(i.cur*100);
+    const pl = platformOf(i.retailer);
+    html+=`<tr>
+      <td><span class="rg rg-${i.region.replace('/','\\/')}">${i.region}</span></td>
+      <td>${i.board?`<span class="brg brg-${BOARD_CLS[i.board]}">${i.board}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
+      <td>${i.country}</td>
+      <td><b>${i.retailer}</b>${pl==='app'?'<span class="plat plat-app">APP</span>':''}</td>
+      <td><span class="tag" style="color:#fff;${buStyle(i.bu)}">${i.bu}</span></td>
+      <td>${i.accId?`<b>${i.accId}</b><div style="font-size:11px;color:var(--muted)">${i.accName}</div>`:'<span style="color:var(--muted)">—</span>'}</td>
+      <td>${i.module}</td>
+      <td>${i.cur===null?'<b style="color:var(--bad)">BLANK</b>':fmt(i.cur)+`<div class="bar"><i style="width:${bw}%;background:${bw<50?'var(--bad)':bw<80?'var(--warn)':'var(--ok)'}"></i></div>`}</td>
+      <td>${fmt(i.prevVal)}</td>
+      <td>${d}</td>
+      <td><span class="tag" style="background:#eff6ff;color:#1e40af">${i.thPts??thOf(i.module)} pts</span></td>
+      <td><span class="tag ${i.severity==='Critical'?'t-crit':'t-norm'}">${i.severity}</span></td>
+      <td>${blockerCell(i)}</td>
+    </tr>`;
+  }
+  tb.innerHTML=html;
+}
+
+/* ---------- styled XLSX export ---------- */
+const EXP_KEY = 'rdhm_export_modules';
+function getExpMods(){
+  try{ const s = JSON.parse(localStorage.getItem(EXP_KEY)); if (Array.isArray(s)) return new Set(s); }catch(e){}
+  return new Set(['Availability','Content','Search']);
+}
+function renderExpMods(){
+  const sel = getExpMods();
+  document.getElementById('expMods').innerHTML = '<span class="ttl">Modules to export</span>' +
+    MODULES.map(m => `<label class="mchip ${sel.has(m)?'on':''}"><input type="checkbox" value="${m}" ${sel.has(m)?'checked':''}/>${m}</label>`).join('') +
+    '<span style="color:var(--muted);font-size:12px;margin-left:4px">Applies to the Excel export · on-screen table is unchanged</span>';
+  document.querySelectorAll('#expMods input').forEach(cb => cb.onchange = () => {
+    const now = [...document.querySelectorAll('#expMods input:checked')].map(x => x.value);
+    localStorage.setItem(EXP_KEY, JSON.stringify(now));
+    renderExpMods();
+  });
+}
+async function exportXlsx(){
+  const mods = getExpMods();
+  if(!mods.size){ alert('Select at least one module to export.'); return; }
+  const v = currentView().filter(i => mods.has(i.module));
+  if(!v.length){ alert('Nothing to export for the selected modules.'); return; }
+  const wb = new ExcelJS.Workbook();
+  wb.creator='Retailer Data Health Monitor'; wb.created=new Date();
+  const HDR='FF1E40AF', HDR2='FF0F766E';
+  const thin={style:'thin',color:{argb:'FFD9E2EC'}};
+  const border={top:thin,left:thin,bottom:thin,right:thin};
+  function styleHeader(ws,color){
+    const r=ws.getRow(1);
+    r.height=26;
+    r.eachCell(c=>{
+      c.fill={type:'pattern',pattern:'solid',fgColor:{argb:color}};
+      c.font={bold:true,color:{argb:'FFFFFFFF'},size:11};
+      c.alignment={vertical:'middle',horizontal:'center'};
+      c.border=border;
+    });
+    ws.views=[{state:'frozen',ySplit:1}];
+  }
+  const ws = wb.addWorksheet('Issues',{properties:{defaultRowHeight:18}});
+  ws.columns=[
+    {header:'Region',key:'region',width:10},
+    {header:'Board Region',key:'board',width:18},
+    {header:'Country',key:'country',width:18},
+    {header:'Retailer',key:'retailer',width:24},
+    {header:'Business Unit',key:'bu',width:14},
+    {header:'Account ID',key:'accId',width:12},
+    {header:'Account Name',key:'accName',width:32},
+    {header:'Module',key:'module',width:14},
+    {header:'Current score',key:'cur',width:14},
+    {header:'PREVIOUS score',key:'prev',width:15},
+    {header:'Change (pts)',key:'delta',width:13},
+    {header:'Threshold (pts)',key:'th',width:15},
+    {header:'Severity',key:'sev',width:11},
+    {header:'Reason',key:'reason',width:56},
+    {header:'Jira blocker',key:'blk',width:48}
+  ];
+  v.forEach(i=>{
+    ws.addRow({
+      region:i.region, board:i.board, country:i.country, retailer:i.retailer, bu:i.bu,
+      accId:i.accId?Number(i.accId)||i.accId:'', accName:i.accName, module:i.module,
+      cur:i.cur===null?null:i.cur, prev:(i.prevVal===null||i.prevVal===undefined)?null:i.prevVal,
+      delta:i.delta===null?null:i.delta*100,
+      th:i.thPts??thOf(i.module),
+      sev:i.severity, reason:i.reason, blk:blkText(i)
+    });
+  });
+  styleHeader(ws,HDR);
+  ws.autoFilter={from:'A1',to:'O1'};
+  ws.eachRow((row,n)=>{
+    if(n===1) return;
+    const sev=row.getCell('sev').value;
+    const zebra = n%2===0 ? 'FFF8FAFC' : 'FFFFFFFF';
+    row.eachCell({includeEmpty:true},c=>{
+      c.border=border;
+      c.fill={type:'pattern',pattern:'solid',fgColor:{argb:sev==='Critical'?'FFFDECEC':zebra}};
+      c.alignment={vertical:'middle'};
+    });
+    row.getCell('cur').numFmt='0.0%';
+    row.getCell('prev').numFmt='0.0%';
+    row.getCell('delta').numFmt='+0.0;-0.0';
+    row.getCell('accId').alignment={horizontal:'center'};
+    row.getCell('th').alignment={horizontal:'center'};
+    const sc=row.getCell('sev');
+    sc.alignment={horizontal:'center'};
+    sc.font={bold:true,color:{argb:sev==='Critical'?'FFB91C1C':'FF15803D'}};
+    const dc=row.getCell('delta');
+    if(typeof dc.value==='number') dc.font={bold:true,color:{argb:dc.value<0?'FFB91C1C':'FF15803D'}};
+    const cc=row.getCell('cur');
+    if(cc.value===null||cc.value===undefined){ cc.value='BLANK'; cc.font={bold:true,color:{argb:'FFB91C1C'}}; cc.alignment={horizontal:'center'}; }
+    const rg=row.getCell('region');
+    rg.alignment={horizontal:'center'};
+    rg.font={bold:true,color:{argb:{APAC:'FF0369A1',EMEA:'FF5B21B6',NA:'FF166534',LATAM:'FF92400E'}[rg.value]||'FF64748B'}};
+  });
+  const ws2 = wb.addWorksheet('Summary');
+  ws2.columns=[
+    {header:'Region',key:'region',width:12},
+    {header:'Board Region',key:'board',width:18},
+    {header:'Country',key:'country',width:20},
+    {header:'Retailer',key:'retailer',width:26},
+    {header:'Business Unit',key:'bu',width:14},
+    {header:'Account ID',key:'accId',width:12},
+    {header:'Critical',key:'crit',width:10},
+    {header:'Blank score',key:'blank',width:12},
+    {header:'Modules affected',key:'mods',width:40}
+  ];
+  const agg={};
+  v.filter(i=>i.severity==='Critical').forEach(i=>{
+    const k=[i.region,i.board,i.country,i.retailer,i.bu].join('||');
+    agg[k]=agg[k]||{region:i.region,board:i.board,country:i.country,retailer:i.retailer,bu:i.bu,accId:i.accId,crit:0,blank:0,mods:new Set()};
+    agg[k].crit++; if(i.cur===null) agg[k].blank++; agg[k].mods.add(`${i.module} (≥${i.thPts??thOf(i.module)} pts)`);
+  });
+  Object.values(agg)
+    .sort((a,b)=>BOARD_ORDER[a.board]-BOARD_ORDER[b.board]||REGION_ORDER[a.region]-REGION_ORDER[b.region]||b.crit-a.crit||a.country.localeCompare(b.country))
+    .forEach(a=>ws2.addRow({...a,accId:Number(a.accId)||a.accId,mods:[...a.mods].join(', ')}));
+  styleHeader(ws2,HDR2);
+  ws2.autoFilter={from:'A1',to:'I1'};
+  ws2.eachRow((row,n)=>{
+    if(n===1) return;
+    row.eachCell({includeEmpty:true},c=>{ c.border=border; c.fill={type:'pattern',pattern:'solid',fgColor:{argb:n%2===0?'FFF8FAFC':'FFFFFFFF'}}; });
+    ['crit','blank','accId','region'].forEach(k=>row.getCell(k).alignment={horizontal:'center'});
+    row.getCell('crit').font={bold:true,color:{argb:'FFB91C1C'}};
+    if(row.getCell('blank').value>0) row.getCell('blank').font={bold:true,color:{argb:'FFB91C1C'}};
+  });
+  const ws3 = wb.addWorksheet('Thresholds');
+  ws3.columns=[
+    {header:'Module',key:'module',width:18},
+    {header:'Threshold applied (pts)',key:'th',width:22},
+    {header:'Recommended (pts)',key:'rec',width:20},
+    {header:'Exported',key:'exp',width:11},
+    {header:'Note',key:'note',width:60}
+  ];
+  MODULES.forEach(m=>ws3.addRow({module:m,th:thOf(m),rec:TH_RECOMMENDED[m],exp:mods.has(m)?'Yes':'No',note:TH_NOTE[m]}));
+  styleHeader(ws3,HDR2);
+  ws3.eachRow((row,n)=>{
+    if(n===1) return;
+    row.eachCell({includeEmpty:true},c=>{ c.border=border; c.fill={type:'pattern',pattern:'solid',fgColor:{argb:n%2===0?'FFF8FAFC':'FFFFFFFF'}}; });
+    ['th','rec','exp'].forEach(k=>row.getCell(k).alignment={horizontal:'center'});
+    if(row.getCell('th').value!==row.getCell('rec').value) row.getCell('th').font={bold:true,color:{argb:'FF1E40AF'}};
+  });
+  const buf = await wb.xlsx.writeBuffer();
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+  a.download='retailer_data_health_'+new Date().toISOString().slice(0,10)+'.xlsx';
+  a.click();
+}
+
+/* ---------- misc ---------- */
+function copyIds(){
+  const ids=[...new Set(currentView().filter(i=>i.severity==='Critical'&&i.accId).map(i=>i.accId))];
+  if(!ids.length){ document.getElementById('copyOut').textContent='No Account IDs in the current view.'; return; }
+  navigator.clipboard.writeText(ids.join(', '));
+  document.getElementById('copyOut').textContent=`Copied ${ids.length} Account ID(s).`;
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');
+  document.getElementById('tab-monitor').style.display = t.dataset.tab==='monitor'?'':'none';
+  document.getElementById('tab-guide').style.display   = t.dataset.tab==='guide'?'':'none';
+  document.getElementById('tab-sync').style.display    = t.dataset.tab==='sync'?'':'none';
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+document.getElementById('btnThReset').onclick=()=>{ state.thresholds={...TH_RECOMMENDED}; saveTh(); renderThresholds(); run(); };
+document.getElementById('btnThAll10').onclick=()=>{ MODULES.forEach(m=>state.thresholds[m]=10); saveTh(); renderThresholds(); run(); };
+['direction','idSource'].forEach(id=>document.getElementById(id).onchange=run);
+['fRegion','fCountry','fRetailer','fBu','fModule','fSev','fSort'].forEach(id=>document.getElementById(id).onchange=renderTable);
+document.getElementById('btnRun').onclick=run;
+document.getElementById('btnXlsx').onclick=exportXlsx;
+document.getElementById('btnCopyIds').onclick=copyIds;
+document.getElementById('btnClear').onclick=()=>{ state.reports=[]; renderFiles(); resetView(); };
+if (LOGO_B64) document.getElementById('heroLogo').src = LOGO_B64; else document.getElementById('heroLogo').style.display = 'none';
+if (BANNER_B64) document.documentElement.style.setProperty('--heroimg', `url('${BANNER_B64}')`);
+renderThresholds(); renderExpMods();
+
+/* =====================================================================
+   v5.3 — Jira blockers + Recovery Tracker sync
+   ===================================================================== */
+const J = { cfg:{}, issues:[], byKey:{}, fields:{}, source:'', loadedAt:null, tracker:null, sync:null, region:'All' };
+const JCFG_KEY = 'rdhm_jira_cfg', JTOK_KEY = 'rdhm_jira_token';
+const DEFAULT_JQL_FN = () => CFG.jira.defaultJql || '';
+function toJql(v){
+  v = String(v||'').trim();
+  if (/^https?:\/\//i.test(v)){
+    try{ const u = new URL(v); const j = u.searchParams.get('jql'); if (j) return j.replace(/order by lastViewed (asc|desc)/i,'ORDER BY updated DESC');
+      const f = u.searchParams.get('filter'); if (f) return 'filter = ' + f; }catch(e){}
+  }
+  return v;
+}
+const ACC_BY_D = {}, ACC_BY_A = {};
+ACCOUNTS.forEach(a => { ACC_BY_D[a.d] = a; ACC_BY_A[a.a] = a; });
+const ISO_NAME = { AE:'United Arab Emirates', AR:'Argentina', AT:'Austria', AU:'Australia', BE:'Belgium', BR:'Brazil', CA:'Canada', CH:'Switzerland',
+  CL:'Chile', CO:'Colombia', CZ:'Czech Republic', DE:'Germany', EG:'Egypt', ES:'Spain', FR:'France', GR:'Greece', ID:'Indonesia', IN:'India', IT:'Italy',
+  KE:'Kenya', LT:'Lithuania', LV:'Latvia', MX:'Mexico', MY:'Malaysia', NG:'Nigeria', NL:'Netherlands', NZ:'New Zealand', PE:'Peru', PH:'Philippines',
+  PL:'Poland', PT:'Portugal', RO:'Romania', SA:'Saudi Arabia', SE:'Sweden', TH:'Thailand', TR:'Turkey', UA:'Ukraine', UK:'United Kingdom', US:'United States',
+  VN:'Vietnam', ZA:'South Africa' };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const todayISO = () => new Date().toISOString().slice(0,10);
+function isoDate(v){
+  if (v === null || v === undefined || v === '') return '';
+  if (v instanceof Date){ if (isNaN(v)) return ''; const p = n => String(n).padStart(2,'0'); return `${v.getFullYear()}-${p(v.getMonth()+1)}-${p(v.getDate())}`; }
+  if (typeof v === 'number'){ const d = new Date(Math.round((v - 25569) * 864e5)); return isNaN(d) ? '' : d.toISOString().slice(0,10); }
+  const s = String(v).trim();
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})/); if (m) return m[1];
+  const d = new Date(s.replace(/(\d{1,2})\/(\w{3})\/(\d{2}) /, '$1 $2 20$3 '));
+  return isNaN(d) ? '' : d.toISOString().slice(0,10);
+}
+const daysBetween = (a,b) => (a && b) ? Math.round((new Date(b) - new Date(a)) / 864e5) : '';
+const trackerRegion = r => (r === 'NA' || r === 'LATAM') ? 'NA/LATAM' : r;
+function normTrRegion(v){
+  const s = String(v ?? '').trim().toUpperCase();
+  if (!s) return '';
+  if (/^(EU|EUROPE|EMEA)/.test(s)) return 'EMEA';
+  if (/APAC|ASIA/.test(s)) return 'APAC';
+  if (/NA|LATAM|NORTH AMERICA|AMERICAS/.test(s)) return 'NA/LATAM';
+  return s;
+}
+
+/* ---------- v5.3: closed = status Resolved / Closed only (Resolution field ignored) ---------- */
+const isClosedStatus = s => /^(resolved|closed)$/i.test(String(s || '').trim());
+
+/* ---------- v5.3: retailer keyword + platform (app / web) ---------- */
+const STOP = new Set(('www shop shops store stores online official mall app apps android ios mobile web site m groceries grocery courses ' +
+  'com co net org biz info pvt ltd limited llc inc gmbh sa srl bv plc corp company world infocom rk example the and of ' +
+  'au nz in id my ph th vn sg jp cn hk kr tw uk us ca de fr it es pt nl be pl ro cz ch at se gr lt lv ua br mx ar cl pe co za ke ng eg ae tr ru').split(' '));
+function platformOf(s){ return /\$\s*android|android|\bapp\b|\bios\b/i.test(String(s || '')) ? 'app' : 'web'; }
+function rkey(s){
+  const raw = String(s ?? '');
+  const t = raw.toLowerCase().replace(/^https?:\/\//,'').replace(/\$\s*android/g,' android ').replace(/\/.*$/,'');
+  const toks = t.split(/[^a-z0-9]+/).filter(w => w && !STOP.has(w) && !/^\d+$/.test(w));
+  return { key: toks[0] || '', compact: toks.join(''), plat: platformOf(raw), raw };
+}
+function nameMatch(a, b){
+  if (!a.key || !b.key) return false;
+  if (a.key === b.key || a.compact === b.compact) return true;
+  const L = x => x.length >= 4;
+  if (L(a.compact) && L(b.compact) && (a.compact.startsWith(b.compact) || b.compact.startsWith(a.compact))) return true;
+  if (L(a.key) && b.compact.startsWith(a.key)) return true;
+  if (L(b.key) && a.compact.startsWith(b.key)) return true;
+  return false;
+}
+const DOMAIN_RE = /(?:[a-z0-9-]+\.)+(?:com|co|net|org|de|fr|it|es|pt|nl|be|pl|ro|cz|ch|at|se|gr|lt|lv|ua|uk|au|nz|in|id|my|ph|th|vn|sg|br|mx|ar|cl|pe|ca|us|za|ke|ng|eg|sa|ae|tr|jp)(?:\.[a-z]{2})?(?:\s*\$\s*android)?/gi;
+/* candidate retailer names carried by a Jira ticket / tracker row */
+function buildCands(summary, retailerVals, extra){
+  const out = [];
+  const add = s => { const k = rkey(s); if (k.key && !out.some(c => c.key === k.key && c.compact === k.compact && c.plat === k.plat)) out.push(k); };
+  (retailerVals || []).forEach(add);
+  (String(summary || '').match(DOMAIN_RE) || []).forEach(add);
+  (extra || []).forEach(add);
+  return out;
+}
+function sumWordsOf(summary){
+  return new Set(String(summary || '').toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length >= 3 && !STOP.has(w)));
+}
+/* does dashboard row (retailer name) match a ticket-like object {cands, sumWords, sumPlat}? returns '' | 'hit' | 'platform' */
+function retailerMatch(rowRetailer, iss){
+  const r = rkey(rowRetailer);
+  if (!r.key) return '';
+  let other = false;
+  for (const c of iss.cands){
+    if (!nameMatch(r, c)) continue;
+    if (c.plat === r.plat) return 'hit';
+    other = true;
+  }
+  if (r.key.length >= 4 && iss.sumWords && iss.sumWords.has(r.key)){
+    if (iss.sumPlat === r.plat) return 'hit';
+    other = true;
+  }
+  return other ? 'platform' : '';
+}
+const retailerHit = (row, iss) => retailerMatch(row.retailer, iss) === 'hit';
+function probeOf(text){ return { cands: buildCands('', [text]), sumWords: new Set(), sumPlat: platformOf(text) }; }
+
+function moduleTags(text){
+  const t = ' ' + String(text ?? '').toLowerCase() + ' ';
+  const m = new Set();
+  if (/search|placement|ranking|keyword|share[- ]of[- ]search|\bsos\b/.test(t)) m.add('Search');
+  if (/content|image|video|bullet|description|title|enhanced|\bpc\b|a\+|word count/.test(t)) m.add('Content');
+  if (/availab|stock|\boos\b|in-stock/.test(t)) m.add('Availability');
+  if (/rating|\brr\b/.test(t)) m.add('Ratings');
+  if (/review|\brr\b/.test(t)) m.add('Reviews');
+  if (/pric|promo/.test(t)) m.add('Pricing');
+  if (/assort|delist|listing|catalog|missing products?|product count/.test(t)) m.add('Assortment');
+  return [...m];
+}
+const MOD_MAP = { Pricing:'Availability', Assortment:'Availability' };
+function effMods(mods){ return [...new Set((mods||[]).map(m => MOD_MAP[m] || m))]; }
+function kpiLabel(mods){
+  const out = [...(mods||[])];
+  if (out.includes('Pricing') && !out.includes('Assortment')) out.splice(out.indexOf('Pricing')+1, 0, 'Assortment');
+  return out.join(' / ');
+}
+function flatVals(v){
+  if (v === null || v === undefined) return [];
+  if (Array.isArray(v)) return v.flatMap(flatVals);
+  if (typeof v === 'object') return flatVals(v.value ?? v.name ?? v.displayName ?? v.key ?? Object.values(v));
+  return [String(v)];
+}
+function parseAccounts(v){ return [...new Set(flatVals(v).join(' ').match(/\b\d{3,5}\b/g) || [])]; }
+function accountsToRegistry(nums){
+  const out = [];
+  nums.forEach(n => { const a = ACC_BY_D[n] || ACC_BY_A[n]; if (a && !out.includes(a)) out.push(a); });
+  return out;
+}
+
+/* normalise one issue from REST or export */
+function mkIssue(o){
+  const accs = accountsToRegistry(parseAccounts(o.accountsRaw || []));
+  const isos = [...new Set(accs.map(a => a.i))];
+  const retailerVals = flatVals(o.retailerRaw).filter(Boolean);
+  const labels = [...(o.labels||[]), ...(o.components||[])].map(String);
+  const cands = buildCands(o.summary, retailerVals, labels.filter(x => /\./.test(x)));
+  const modText = [o.summary, labels.join(' ')].join(' ');
+  const base = (J.cfg.base || '').replace(/\/+$/,'');
+  const domains = String(o.summary||'').match(DOMAIN_RE) || [];
+  return {
+    key:o.key, project:(o.key||'').split('-')[0], summary:o.summary||'', status:o.status||'',
+    statusCat: isClosedStatus(o.status) ? 'done' : 'open',
+    resolution:o.resolution||'', resolved:isoDate(o.resolved), created:isoDate(o.created), updated:isoDate(o.updated), due:isoDate(o.due),
+    assignee:o.assignee||'', priority:o.priority||'', components:o.components||[], type:o.type||'',
+    accountsRaw:o.accountsRaw||[], accs, isos, regions:[...new Set(isos.map(i => trackerRegion(ISO2REGION[i]||'N/A')))],
+    retailer: retailerVals[0] || (domains[0] || '').replace(/\s+/g,''), cands,
+    sumWords: sumWordsOf(o.summary), sumPlat: platformOf(o.summary),
+    modules: moduleTags(modText), url: base ? base + '/browse/' + o.key : ''
+  };
+}
+
+/* ---------- config ---------- */
+function loadCfg(){
+  try{ J.cfg = JSON.parse(localStorage.getItem(JCFG_KEY)) || {}; }catch(e){ J.cfg = {}; }
+  J.cfg.token = localStorage.getItem(JTOK_KEY) || sessionStorage.getItem(JTOK_KEY) || '';
+  if (!J.cfg.jql) J.cfg.jql = DEFAULT_JQL_FN();
+  if (!J.cfg.base) J.cfg.base = CFG.jira.baseUrl || '';
+}
+function saveCfg(){
+  const { token, ...rest } = J.cfg;
+  localStorage.setItem(JCFG_KEY, JSON.stringify(rest));
+  localStorage.removeItem(JTOK_KEY); sessionStorage.removeItem(JTOK_KEY);
+  if (token) (J.cfg.remember ? localStorage : sessionStorage).setItem(JTOK_KEY, token);
+}
+function openModal(){
+  const c = J.cfg, g = id => document.getElementById(id);
+  g('jBase').value = c.base||''; g('jAuth').value = c.auth||'pat'; g('jUser').value = c.user||'';
+  g('jToken').value = c.token||''; g('jSaved').textContent = c.token ? '· saved' : '';
+  g('jRemember').checked = !!c.remember; g('jAccField').value = c.accField||''; g('jRetField').value = c.retField||'';
+  g('jJql').value = c.jql||DEFAULT_JQL_FN(); g('jProxy').value = c.proxy||''; g('jMsg').innerHTML = '';
+  g('jiraMask').classList.add('on');
+}
+function setStat(cls, text){
+  ['jStat1','jStat2'].forEach(id => { const el = document.getElementById(id); el.className = 'jstat ' + cls; el.querySelector('span').textContent = text; });
+}
+
+/* ---------- REST ---------- */
+function normProxy(p){
+  p = String(p||'').trim(); if (!p) return '';
+  if (!/^https?:\/\//i.test(p)) p = 'http://' + p;
+  if (!/[?&]url=$/.test(p)) p = p.replace(/\/?(\?.*)?$/, '/?url=');
+  return p.replace('localhost','127.0.0.1');
+}
+async function checkProxy(){
+  const c = J.cfg; if (!c.proxy) return;
+  try{ const r = await fetch(c.proxy.replace(/\?url=$/,'')); const t = await r.text();
+    if (!/proxy is running/i.test(t)) throw new Error('unexpected reply'); }
+  catch(e){ throw new Error(`Step 1 failed — proxy not reachable at ${c.proxy}. Is the black proxy window still open? (Check the port: default 8787.) [${e.message}]`); }
+}
+async function jget(path){
+  const c = J.cfg;
+  if (!c.base) throw new Error('Jira base URL is empty');
+  const url = c.base.replace(/\/+$/,'') + path;
+  const headers = { 'Accept':'application/json' };
+  if (c.auth === 'basic') headers.Authorization = 'Basic ' + btoa((c.user||'') + ':' + (c.token||''));
+  else headers.Authorization = 'Bearer ' + (c.token||'');
+  let res;
+  try { res = await fetch(c.proxy ? c.proxy + encodeURIComponent(url) : url, { headers }); }
+  catch(e){ throw new Error(c.proxy ? `Proxy reached, but the browser request failed [${e.message}]. Restart the proxy with the latest jira_proxy.py.`
+                                   : 'Browser could not reach Jira (CORS / network). Fill the proxy field. [' + e.message + ']'); }
+  const ct = res.headers.get('content-type') || '', fin = res.headers.get('x-final-url') || '';
+  let body = ''; try{ body = await res.text(); }catch(e){}
+  const hint = {
+    401:'Token rejected. Use "Personal Access Token (Bearer)" with a token created in Jira → Profile → Personal Access Tokens. A token copied from another tool / app will not work.',
+    403:'Authenticated but blocked (missing permission, or CAPTCHA after failed logins — log in to Jira in the browser once, then retry).',
+    404:`Wrong Base URL — use the Jira application root, e.g. ${CFG.jira.baseUrl || 'https://jira.example.com'} (no /browse, no trailing path).`,
+    502:'Proxy could not reach Jira — see the message, check VPN, or start the proxy with --insecure.'
+  }[res.status] || '';
+  if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status} — ${hint} ${body.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,200)}`), { status:res.status });
+  if (!/json/i.test(ct)) throw new Error(`Jira returned a web page instead of data${fin ? ' (redirected to ' + fin + ')' : ''} — the token was not accepted and Jira sent you to the SSO/login page. Create a Personal Access Token in Jira and use Bearer.`);
+  return JSON.parse(body);
+}
+async function detectFields(){
+  const list = await jget('/rest/api/2/field');
+  const custom = list.filter(f => f.custom);
+  const acc = custom.find(f => /^accounts?$/i.test(f.name.trim())) || custom.find(f => /^account/i.test(f.name) && !/manager|owner|name/i.test(f.name));
+  const ret = custom.find(f => /^retailers?$/i.test(f.name.trim())) || custom.find(f => /^(retailer|shop|site|domain)/i.test(f.name));
+  return { acc: acc ? acc.id : '', accName: acc ? acc.name : '', ret: ret ? ret.id : '', retName: ret ? ret.name : '' };
+}
+function restToIssue(it){
+  const f = it.fields || {}, c = J.cfg;
+  return mkIssue({
+    key: it.key, summary: f.summary, status: f.status?.name,
+    resolution: f.resolution?.name, resolved: f.resolutiondate, created: f.created, updated: f.updated, due: f.duedate,
+    assignee: f.assignee?.displayName || f.assignee?.name || '', priority: f.priority?.name, type: f.issuetype?.name,
+    components: (f.components||[]).map(x => x.name), labels: f.labels || [],
+    accountsRaw: c.accField ? flatVals(f[c.accField]) : [], retailerRaw: c.retField ? f[c.retField] : null
+  });
+}
+async function searchAll(jql, cap){
+  const c = J.cfg;
+  const fields = ['summary','status','resolution','resolutiondate','created','updated','duedate','assignee','priority','issuetype','components','labels', c.accField, c.retField].filter(Boolean).join(',');
+  const out = []; let start = 0;
+  while (true){
+    const r = await jget(`/rest/api/2/search?jql=${encodeURIComponent(jql)}&startAt=${start}&maxResults=100&validateQuery=warn&fields=${fields}`);
+    (r.issues||[]).forEach(it => out.push(restToIssue(it)));
+    start += (r.issues||[]).length;
+    setStat('busy', `Loading Jira… ${out.length}${r.total ? ' / ' + Math.min(r.total, cap) : ''}`);
+    if (!r.issues || !r.issues.length || start >= r.total || out.length >= cap) break;
+  }
+  return out;
+}
+async function loadJira(){
+  if (!J.cfg.token){ openModal(); return; }
+  try{
+    setStat('busy','Loading Jira…');
+    await checkProxy();
+    if (!J.cfg.accField){ const d = await detectFields(); J.cfg.accField = d.acc; J.cfg.retField = J.cfg.retField || d.ret; saveCfg(); }
+    const main = await searchAll(J.cfg.jql || DEFAULT_JQL_FN(), 3000);
+    const map = {}; main.forEach(i => map[i.key] = i);
+    const want = J.tracker ? [...J.tracker.allIds].filter(k => !map[k]) : [];
+    for (let i = 0; i < want.length; i += 40){
+      const chunk = want.slice(i, i+40);
+      try { (await searchAll(`key in (${chunk.join(',')})`, 100)).forEach(x => map[x.key] = x); }
+      catch(e){ for (const k of chunk){ try{ map[k] = restToIssue(await jget(`/rest/api/2/issue/${k}`)); }catch(_){} } }
+    }
+    setIssues(Object.values(map), 'Jira API');
+  }catch(e){
+    setStat('err', 'Jira error');
+    setNotes(`<b style="color:var(--bad)">Jira load failed:</b> ${esc(e.message)}`);
+  }
+}
+function setIssues(list, source){
+  J.issues = list; J.byKey = {}; list.forEach(i => J.byKey[i.key] = i);
+  J.source = source; J.loadedAt = new Date();
+  const clientN = list.filter(i => i.accs.length).length, open = list.filter(i => i.statusCat !== 'done').length;
+  setStat('ok', `${source}: ${list.length} tickets · ${open} open · ${clientN} with ${CFG.clientLabel} account`);
+  const warn = !list.some(i => i.accountsRaw.length)
+    ? ' <b style="color:var(--bad)">No Account values found</b> — set the Account field ID in Connect Jira (or include the Account column in the export).' : '';
+  setNotes(`Loaded ${J.loadedAt.toLocaleTimeString()} · Account field: <code>${esc(J.cfg.accField || (source==='Jira API'?'not set':'from export'))}</code> · closed = status Resolved / Closed.${warn}`);
+  renderProjects();
+  if (state.issues.length){ attachBlockers(); render(); }
+  if (J.tracker) compareTracker();
+}
+function setNotes(html){ document.getElementById('jNote2').innerHTML = html; }
+
+/* ---------- offline import: Jira CSV / Excel / REST JSON ---------- */
+async function importJira(file){
+  try{
+    let issues = [];
+    if (/\.json$/i.test(file.name)){
+      const d = JSON.parse(await file.text());
+      issues = (d.issues || (Array.isArray(d) ? d : [])).map(restToIssue);
+    } else {
+      const wb = XLSX.read(await file.arrayBuffer(), { type:'array', cellDates:true });
+      const aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header:1, defval:null, raw:true });
+      let h = aoa.findIndex(r => (r||[]).some(c => /^(issue key|key)$/i.test(String(c??'').trim())));
+      if (h < 0) throw new Error('No "Issue key" column found');
+      const head = aoa[h].map(c => String(c??'').trim().toLowerCase());
+      const all = re => head.map((x,i) => re.test(x) ? i : -1).filter(i => i >= 0);
+      const one = re => all(re)[0];
+      const cKey = one(/^(issue key|key)$/), cSum = one(/^summary$/), cSt = one(/^status$/),
+            cRes = one(/^resolution$/), cRsd = one(/^resolved$/), cCr = one(/^created$/), cUp = one(/^updated$/), cDue = one(/^due ?date$/),
+            cAs = one(/^assignee$/), cPr = one(/^priority$/), cTy = one(/^issue ?type$/);
+      const cComp = all(/^component/), cLab = all(/^labels?$/);
+      const cAcc = all(/account/).filter(i => !/manager|owner|name/.test(head[i]));
+      const cRet = all(/retailer|^custom field \((shop|site)/);
+      for (let r = h+1; r < aoa.length; r++){
+        const row = aoa[r]; if (!row || !row[cKey]) continue;
+        const v = i => i === undefined ? null : row[i];
+        issues.push(mkIssue({
+          key: String(v(cKey)).trim(), summary: v(cSum), status: v(cSt),
+          resolution: v(cRes), resolved: v(cRsd), created: v(cCr), updated: v(cUp), due: v(cDue), assignee: v(cAs), priority: v(cPr), type: v(cTy),
+          components: cComp.map(v).filter(Boolean), labels: cLab.map(v).filter(Boolean),
+          accountsRaw: cAcc.map(v).filter(x => x !== null), retailerRaw: cRet.map(v).filter(Boolean)
+        }));
+      }
+    }
+    if (!issues.length) throw new Error('no tickets found in the file');
+    setIssues(issues, 'Import ' + file.name);
+  }catch(e){ setStat('err','Import failed'); setNotes(`<b style="color:var(--bad)">Import failed:</b> ${esc(e.message)}`); }
+}
+
+/* ---------- blocker matching for the health monitor ---------- */
+function attachBlockers(){
+  const open = J.issues.filter(i => i.statusCat !== 'done');
+  const trOpen = J.tracker ? J.tracker.rows.filter(r => !isClosedStatus(r.status)) : [];
+  for (const row of state.issues){
+    row.blockers = []; row.noBlkWhy = '';
+    if (row.severity !== 'Critical') continue;
+    const acc = matchAccount(row.country, row.bu);
+    const iso = ISO[String(row.country).trim().toLowerCase()];
+    const rk = rkey(row.retailer);
+    let accTickets = 0; const otherPlat = [];
+    for (const iss of open){
+      if (!(acc && iss.accs.some(a => a.d === acc.d))) continue;
+      accTickets++;
+      const m = retailerMatch(row.retailer, iss);
+      if (m === 'platform'){ otherPlat.push(iss.key); continue; }
+      if (m !== 'hit') continue;
+      const em = effMods(iss.modules);
+      const modHit = !em.length || em.includes(row.module);
+      row.blockers.push({ src:'jira', key:iss.key, status:iss.status, url:iss.url, hit:modHit, summary:iss.summary });
+    }
+    if (!row.blockers.length && trOpen.length){
+      for (const tr of trOpen){
+        const trIso = ISO[String(tr.country).trim().toLowerCase()];
+        if (!trIso || trIso !== iso) continue;
+        if (retailerMatch(row.retailer, probeOf(tr.retailer)) !== 'hit') continue;
+        const mods = effMods(moduleTags(tr.kpi));
+        tr.ids.forEach(k => { if (!J.byKey[k] || J.byKey[k].statusCat !== 'done')
+          row.blockers.push({ src:'tracker', key:k, status:'Tracker: '+tr.status, url:J.cfg.base ? J.cfg.base.replace(/\/+$/,'')+'/browse/'+k : '', hit:!mods.length || mods.includes(row.module), summary:tr.desc }); });
+      }
+    }
+    if (!row.blockers.length){
+      const pl = rk.plat === 'app' ? 'app' : 'web';
+      if (!J.issues.length) row.noBlkWhy = 'Jira not loaded — tracker checked only';
+      else if (!acc) row.noBlkWhy = 'Country not in the account registry';
+      else if (!accTickets) row.noBlkWhy = `No open Jira ticket for account ${acc.d}`;
+      else if (otherPlat.length) row.noBlkWhy = `${otherPlat.slice(0,3).join(', ')} exist for "${rk.key}" but on the ${pl === 'app' ? 'web' : 'app'} side (this row is ${pl})`;
+      else row.noBlkWhy = `${accTickets} open ticket(s) for account ${acc.d}, none mention "${rk.key}" (${pl})`;
+    }
+    row.blockers.sort((a,b) => (b.hit - a.hit) || a.key.localeCompare(b.key));
+  }
+}
+function blockerCell(i){
+  if (i.severity !== 'Critical') return '<span style="color:var(--muted)">—</span>';
+  const b = i.blockers || [];
+  if (!b.length) return (J.issues.length || J.tracker)
+    ? `<span class="nobk" title="${esc(i.noBlkWhy)}">⚠ No blocker</span><span class="nobk-why">${esc(i.noBlkWhy)}</span>`
+    : '<span style="color:var(--muted);font-size:11.5px">Jira not loaded</span>';
+  const chip = x => {
+    const cls = x.src === 'tracker' ? 'trk' : (x.hit ? 'hit' : 'oth');
+    const inner = `${esc(x.key)} <span class="s">${esc(x.status)}</span>`;
+    return x.url ? `<a class="bk ${cls}" href="${esc(x.url)}" target="_blank" title="${esc(x.summary)}">${inner}</a>` : `<span class="bk ${cls}" title="${esc(x.summary)}">${inner}</span>`;
+  };
+  return b.slice(0,3).map(chip).join('') + (b.length > 3 ? `<span class="bk oth">+${b.length-3}</span>` : '');
+}
+const blkText = i => i.severity !== 'Critical' ? '' : (i.blockers||[]).length ? i.blockers.map(x => `${x.key} (${x.status})`).join('; ') : 'NO BLOCKER — ' + (i.noBlkWhy || '');
+function blockerKpis(list){
+  const crit = list.filter(i => i.severity === 'Critical');
+  if (!J.issues.length && !J.tracker) return '';
+  const w = crit.filter(i => (i.blockers||[]).length).length;
+  return `<div class="kpi" style="border-color:#fed7aa"><div class="n" style="color:#c2410c">${w}</div><div class="l">Critical with Jira blocker</div></div>
+    <div class="kpi bad"><div class="n">${crit.length - w}</div><div class="l">Critical without blocker</div></div>`;
+}
+function copyNoBlocker(){
+  const v = currentView().filter(i => i.severity === 'Critical' && !(i.blockers||[]).length);
+  const out = document.getElementById('copyOut');
+  if (!v.length){ out.textContent = 'Every Critical row in view has a blocker.'; return; }
+  const head = ['Region','Country','Retailer','Platform','Business unit','Account ID','Module','Current','PREVIOUS','Change (pts)','Reason','Why no blocker'];
+  const lines = v.map(i => [i.region, i.country, i.retailer, platformOf(i.retailer), i.bu, i.accId, i.module, i.cur===null?'BLANK':(i.cur*100).toFixed(1)+'%',
+    i.prevVal==null?'':(i.prevVal*100).toFixed(1)+'%', i.delta==null?'':(i.delta*100).toFixed(1), i.reason, i.noBlkWhy||''].join('\t'));
+  navigator.clipboard.writeText([head.join('\t'), ...lines].join('\n'));
+  out.textContent = `Copied ${v.length} row(s) without a blocker (tab-separated, paste into Excel).`;
+}
+
+/* ---------- tracker parsing ---------- */
+const KEY_RE = /\b[A-Z][A-Z0-9]{1,9}-\d{2,7}\b/g;
+const HMAP = { zendesk:/^zendesk/, id:/^internal ticket id/, region:/^region$/, country:/^country/, retailer:/^retailer$/, kpi:/^affected kpi/, desc:/^issue description/,
+  severity:/^severity$/, root:/^root cause/, status:/^status$/, raised:/^date raised/, eta:/^expected resolution/, sprint:/^planned sprint/, actual:/^actual resolution/,
+  days:/^days open/, passed:/^estimate passed/, excl:/^excl/, owner:null, clientOwner:null, notes:/^notes/, updated:/^last updated/ };
+function trackerHmap(){
+  const h = Object.assign({}, HMAP);
+  h.owner = new RegExp('^' + escRe(String(CFG.tracker.vendorOwnerHeader || 'vendor owner').toLowerCase()));
+  h.clientOwner = new RegExp('^' + escRe(String(CFG.tracker.clientOwnerHeader || 'client owner').toLowerCase()));
+  return h;
+}
+const colLetter = i => { let s = ''; i++; while (i){ const m = (i-1) % 26; s = String.fromCharCode(65+m) + s; i = Math.floor((i-1)/26); } return s; };
+async function loadTracker(files){
+  const f = files[0]; if (!f) return;
+  const info = document.getElementById('trackerInfo');
+  try{
+    const wb = XLSX.read(await f.arrayBuffer(), { type:'array', cellDates:true });
+    const allIds = new Set(), excluded = new Set(); let main = null; const sheets = [];
+    for (const sn of wb.SheetNames){
+      const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header:1, defval:null, raw:true });
+      if (/^note$/i.test(sn)){ aoa.forEach(r => { const k = String(r?.[0]??'').match(KEY_RE); if (k && /exclude/i.test(String(r?.[1]??''))) k.forEach(x => excluded.add(x)); }); continue; }
+      const h = aoa.slice(0,10).findIndex(r => (r||[]).some(c => /^internal ticket id/i.test(String(c??'').trim())));
+      if (h < 0) continue;
+      const head = aoa[h].map(c => String(c??'').trim());
+      const HM = trackerHmap(); const col = {}; head.forEach((x,i) => { const n = x.toLowerCase(); for (const k in HM) if (!(k in col) && HM[k] && HM[k].test(n)) col[k] = i; });
+      const rows = [];
+      for (let r = h+1; r < aoa.length; r++){
+        const row = aoa[r]; if (!row) continue;
+        const g = k => col[k] === undefined ? null : row[col[k]];
+        const idRaw = String(g('id') ?? '').trim();
+        const ids = [...new Set(idRaw.toUpperCase().match(KEY_RE) || [])];
+        ids.forEach(k => allIds.add(k));
+        if (!idRaw && !g('retailer') && !g('desc')) continue;
+        rows.push({ excelRow:r+1, ids, idRaw, zendesk:g('zendesk')??'', region:normTrRegion(g('region')), regionRaw:g('region')??'', country:String(g('country')??'').trim(),
+          retailer:String(g('retailer')??'').trim(), kpi:String(g('kpi')??''), desc:String(g('desc')??''), status:String(g('status')??'').trim(),
+          raised:isoDate(g('raised')), actual:isoDate(g('actual')), owner:String(g('owner')??'').trim() });
+      }
+      sheets.push({ name:sn, count:rows.length });
+      if (!main || /^issue tracker$/i.test(sn)) main = { name:sn, head, col, rows };
+    }
+    if (!main) throw new Error('No sheet with an "Internal Ticket ID" header');
+    const owners = {}; main.rows.forEach(r => r.owner && (owners[r.owner] = (owners[r.owner]||0)+1));
+    const topOwner = Object.keys(owners).sort((a,b) => owners[b]-owners[a])[0] || '';
+    J.tracker = { file:f.name, sheet:main.name, head:main.head, col:main.col, rows:main.rows, allIds, excluded, topOwner, sheets };
+    if (!document.getElementById('sOwner').value) document.getElementById('sOwner').value = topOwner;
+    info.innerHTML = `<div class="fileitem">📋 ${esc(f.name)} <span style="color:var(--muted)">· edits on <b>${esc(main.name)}</b> (${main.rows.length} rows) · ${allIds.size} ticket IDs across ${sheets.map(s=>esc(s.name)).join(', ')} · ${excluded.size} excluded (Note)</span></div>`;
+    if (state.issues.length){ attachBlockers(); render(); }
+    if (J.issues.length) compareTracker(); else setNotes('Tracker loaded — now load Jira tickets (the tracker IDs will be fetched too).');
+  }catch(e){ info.innerHTML = `<div class="fileitem" style="color:var(--bad)">Tracker error: ${esc(e.message)}</div>`; }
+}
+
+/* ---------- dashboard (health monitor) lookup ---------- */
+const fmtPts = d => d == null ? 'BLANK' : (d < 0 ? '▼' : '▲') + Math.abs(d*100).toFixed(1) + ' pts';
+const rowLabel = r => `${r.module} ${r.cur === null ? 'BLANK' : fmtPts(r.delta)}`;
+function dashForIssue(iss){
+  const em = effMods(iss.modules);
+  const rows = state.issues.filter(r => {
+    const acc = matchAccount(r.country, r.bu);
+    return acc && iss.accs.some(a => a.d === acc.d) && retailerHit(r, iss);
+  });
+  const crit = rows.filter(r => r.severity === 'Critical');
+  const hit = em.length ? crit.filter(r => em.includes(r.module)) : crit;
+  return { rows, crit, hit };
+}
+function dashForTrackerRow(tr){
+  if (!state.issues.length) return { status:'No dashboard loaded', crit:false };
+  const iso = ISO[String(tr.country).trim().toLowerCase()];
+  if (!iso) return { status:'Not in dashboard', crit:false };
+  const probe = probeOf(tr.retailer);
+  const rows = state.issues.filter(r => ISO[String(r.country).trim().toLowerCase()] === iso && retailerHit(r, probe));
+  if (!rows.length) return { status:'Not in dashboard', crit:false };
+  const em = effMods(moduleTags(tr.kpi));
+  const crit = rows.filter(r => r.severity === 'Critical');
+  const same = em.length ? crit.filter(r => em.includes(r.module)) : crit;
+  if (same.length) return { status:'Critical — ' + same.map(rowLabel).join(', '), crit:true };
+  if (crit.length) return { status:'Critical (other module) — ' + crit.map(rowLabel).join(', '), crit:true };
+  return { status:'Normal', crit:false };
+}
+
+/* ---------- compare ---------- */
+function renderProjects(){
+  const projs = [...new Set(J.issues.map(i => i.project))].sort();
+  const keep = J.cfg.projSel || projs;
+  document.getElementById('sProjects').innerHTML = projs.length ? projs.map(p =>
+    `<label class="mchip ${keep.includes(p)?'on':''}"><input type="checkbox" value="${p}" ${keep.includes(p)?'checked':''}/>${p} · ${J.issues.filter(i=>i.project===p && i.statusCat!=='done').length} open</label>`).join('')
+    : '<span style="color:var(--muted);font-size:12.5px">Load Jira tickets first</span>';
+  document.querySelectorAll('#sProjects input').forEach(cb => cb.onchange = () => {
+    J.cfg.projSel = [...document.querySelectorAll('#sProjects input:checked')].map(x => x.value); saveCfg(); renderProjects(); if (J.tracker) compareTracker();
+  });
+}
+function cellRef(name, row){ const i = J.tracker.col[name]; return i === undefined ? null : colLetter(i) + row; }
+function compareTracker(){
+  const T = J.tracker; if (!T){ alert('Upload the Recovery Tracker first.'); return; }
+  if (!J.issues.length){ alert('Load or import Jira tickets first.'); return; }
+  const today = todayISO();
+  const since = document.getElementById('sSince').value.trim();
+  const owner = document.getElementById('sOwner').value.trim();
+  const projSel = J.cfg.projSel && J.cfg.projSel.length ? J.cfg.projSel : [...new Set(J.issues.map(i => i.project))];
+  const S = { resolve:[], reopen:[], add:[], check:[], missing:new Set(), skipped:[], noDash:!state.issues.length };
+
+  for (const r of T.rows){
+    const reg = r.region || 'Unassigned';
+    const isRes = isClosedStatus(r.status);
+    if (!r.ids.length){ if (!isRes) S.check.push({ region:reg, row:r, reason:`No Jira key in "Internal Ticket ID" (${r.idRaw || 'blank'})` }); continue; }
+    const found = r.ids.map(k => J.byKey[k]).filter(Boolean);
+    const missing = r.ids.filter(k => !J.byKey[k]);
+    const allDone = !missing.length && found.every(i => i.statusCat === 'done');
+    const evidence = found.map(i => `${i.key}: ${i.status}${i.resolved ? ' (' + i.resolved + ')' : ''}`).join(' · ');
+    missing.forEach(k => S.missing.add(k));
+    if (missing.length && !isRes && J.source === 'Jira API') S.check.push({ region:reg, row:r, reason:`Not returned by Jira: ${missing.join(', ')} — check key / permission`, evidence });
+    const regs = [...new Set(found.flatMap(i => i.regions))].filter(x => x !== 'N/A');
+    if (regs.length && r.region && !regs.includes(r.region)) S.check.push({ region:reg, row:r, reason:`Tracker region ${r.regionRaw} ≠ Jira account region ${regs.join(' / ')}`, evidence });
+    if (!isRes && allDone){
+      const act = found.map(i => i.resolved || i.updated).filter(Boolean).sort().pop() || today;
+      const edits = [['status','Resolved'], ['actual',act], ['days',daysBetween(r.raised, act)], ['updated',today]]
+        .map(([k,v]) => ({ ref:cellRef(k, r.excelRow), field:k, value:v })).filter(e => e.ref && e.value !== '');
+      S.resolve.push({ region:reg, row:r, edits, evidence });
+    } else if (isRes && found.some(i => i.statusCat !== 'done')){
+      const edits = [['status','Open'], ['actual',''], ['updated',today]].map(([k,v]) => ({ ref:cellRef(k, r.excelRow), field:k, value:v })).filter(e => e.ref);
+      S.reopen.push({ region:reg, row:r, edits, evidence, dash:dashForTrackerRow(r) });
+    } else if (!isRes && found.length){
+      const doneN = found.filter(i => i.statusCat === 'done').length;
+      if (doneN && doneN < found.length) S.check.push({ region:reg, row:r, reason:`Only ${doneN} of ${found.length} linked tickets have status Resolved / Closed`, evidence });
+    }
+  }
+
+  for (const i of J.issues){
+    if (i.statusCat === 'done' || !i.accs.length) continue;
+    if (T.allIds.has(i.key) || T.excluded.has(i.key)) continue;
+    if (!projSel.includes(i.project)) continue;
+    if (since && i.created && i.created < since) continue;
+    if (S.noDash){ S.skipped.push({ iss:i, why:'No dashboard loaded' }); continue; }
+    const dsh = dashForIssue(i);
+    if (!dsh.hit.length){
+      S.skipped.push({ iss:i, why: !dsh.rows.length ? 'Retailer / platform not in dashboard'
+        : dsh.crit.length ? 'Critical only on other module(s): ' + dsh.crit.map(rowLabel).join(', ') : 'Normal on dashboard' });
+      continue;
+    }
+    const dashTxt = 'Critical — ' + dsh.hit.map(r => `${r.retailer} ${r.bu} ${rowLabel(r)}`).join(', ');
+    const regs = i.regions.length ? i.regions : ['Unassigned'];
+    const countries = [...new Set(i.isos.map(x => ISO_NAME[x] || x))].join(' / ');
+    const kpi = i.modules.length ? kpiLabel(i.modules) : [...new Set(dsh.hit.map(r => r.module))].join(' / ');
+    const sev = /critical|highest/i.test(i.priority) ? 'Critical' : 'High';
+    const val = { zendesk:'', id:i.key, region:regs.join(' / '), country:countries, retailer:i.retailer || dsh.hit[0].retailer, kpi, desc:i.summary,
+      severity:sev, root:'', status:'Open', raised:i.created, eta:'No ETA to share yet', sprint:i.due ? `Jira due ${i.due}` : 'No ETA to share yet',
+      actual:'', days:daysBetween(i.created, today), passed:'Not confirmed', excl:'To be agreed', owner:owner || 'To be confirmed', clientOwner:'To be confirmed',
+      notes:`Jira ${i.status}${i.assignee ? ' · ' + i.assignee : ''} · accounts ${i.accs.map(a=>a.d).join(' ')} · Dashboard ${dashTxt}`, updated:today };
+    const keyOfCol = idx => Object.keys(T.col).find(k => T.col[k] === idx);
+    const tsv = T.head.map((_,idx) => { const k = keyOfCol(idx); return k ? String(val[k] ?? '').replace(/[\t\n]/g,' ') : ''; });
+    while (tsv.length && tsv[tsv.length-1] === '') tsv.pop();
+    regs.forEach(rg => S.add.push({ region:rg, iss:i, val, tsv:tsv.join('\t'), multi:regs.length > 1, dash:dashTxt }));
+  }
+  J.sync = S; renderSync();
+}
+
+/* ---------- sync rendering + copy ---------- */
+const SEC = [
+  { k:'resolve', t:'① Change to Resolved', c:'n-res', d:'Every linked Jira ticket has status Resolved or Closed. Apply the cell edits below.' },
+  { k:'reopen',  t:'② Reopen / revert',    c:'n-reo', d:'Tracker says Resolved, but at least one linked ticket\'s status is still open in Jira. Dashboard column: is the retailer Critical right now (red rows)?' },
+  { k:'add',     t:'③ Add new rows',       c:'n-new', d:'Open, untracked Jira tickets whose account + retailer + platform + module is <b>Critical</b> on the dashboard (Pricing / Assortment tickets are checked against Availability). "Copy rows" → paste at column A of the first empty Issue Tracker row.' },
+  { k:'check',   t:'④ Manual check',       c:'n-chk', d:'Conflicts the tool cannot decide (status-based only) — review before editing.' }
+];
+const inReg = x => J.region === 'All' || x.region === J.region;
+function dashTag(d){
+  if (!d) return '';
+  if (d.crit) return `<span class="tag t-crit">${esc(d.status)}</span>`;
+  return d.status === 'Normal' ? '<span class="tag t-norm">Normal</span>' : `<span class="tag" style="background:#f1f5f9;color:#64748b">${esc(d.status)}</span>`;
+}
+function renderSync(){
+  const S = J.sync; if (!S) return;
+  document.getElementById('syncCard').style.display = 'block';
+  const items = [...S.resolve, ...S.reopen, ...S.add, ...S.check];
+  const regs = ['All', ...new Set(['APAC','EMEA','NA/LATAM', ...items.map(x => x.region)])];
+  const cnt = rg => items.filter(x => rg === 'All' || x.region === rg).length;
+  document.getElementById('rgTabs').innerHTML = regs.map(rg => `<div class="rgtab ${J.region===rg?'on':''}" data-rg="${esc(rg)}">${esc(rg)}<span class="c">${cnt(rg)}</span></div>`).join('');
+  document.querySelectorAll('.rgtab').forEach(t => t.onclick = () => { J.region = t.dataset.rg; renderSync(); });
+  document.getElementById('syncScope').textContent =
+    `${J.tracker.file} · sheet "${J.tracker.sheet}" · Jira source: ${J.source} (${J.issues.length} tickets) · compared ${J.loadedAt ? J.loadedAt.toLocaleString() : ''}`;
+  const html = SEC.map(s => {
+    const list = S[s.k].filter(inReg);
+    let body = '';
+    if (!list.length) body = (s.k === 'add' && S.noDash) ? '<div class="empty" style="padding:22px">⚠ Upload the weekly reports on the <b>Monitor</b> tab first — new rows are only added for retailers that are Critical on the dashboard.</div>'
+      : '<div class="empty" style="padding:22px">Nothing to change.</div>';
+    else if (s.k === 'resolve' || s.k === 'reopen') body = `<table><thead><tr><th>Region</th><th>Excel row</th><th>Ticket(s)</th><th>Retailer</th><th>Now</th><th>Cell edits</th>${s.k==='reopen'?'<th>Dashboard</th>':''}<th>Jira evidence</th></tr></thead><tbody>${
+      list.map(x => `<tr${x.dash&&x.dash.crit?' class="dcrit"':''}><td>${esc(x.region)}</td><td><b>${x.row.excelRow}</b></td><td>${esc(x.row.ids.join(', '))}</td><td>${esc(x.row.retailer)}</td><td>${esc(x.row.status)}</td>
+        <td>${x.edits.map(e => `<span class="cellchg">${e.ref} = ${esc(e.value === '' ? '(clear)' : e.value)}</span>`).join('')}</td>${s.k==='reopen'?`<td>${dashTag(x.dash)}</td>`:''}<td style="font-size:11.5px">${esc(x.evidence)}</td></tr>`).join('')}</tbody></table>`;
+    else if (s.k === 'add') body = `<table><thead><tr><th>Region</th><th>Ticket</th><th>Country</th><th>Retailer</th><th>KPI</th><th>Summary</th><th>Jira status</th><th>Created</th><th>Dashboard</th></tr></thead><tbody>${
+      list.map(x => `<tr><td>${esc(x.region)}${x.multi?' <span class="bk oth">multi</span>':''}</td><td>${x.iss.url?`<a class="bk hit" target="_blank" href="${esc(x.iss.url)}">${esc(x.iss.key)}</a>`:esc(x.iss.key)}</td>
+        <td>${esc(x.val.country)}</td><td>${esc(x.val.retailer)}</td><td>${esc(x.val.kpi)}</td><td>${esc(x.iss.summary)}</td><td>${esc(x.iss.status)}</td><td>${esc(x.iss.created)}</td><td><span class="tag t-crit">${esc(x.dash)}</span></td></tr>`).join('')}</tbody></table>`;
+    else body = `<table><thead><tr><th>Region</th><th>Excel row</th><th>Ticket(s)</th><th>Retailer</th><th>Status</th><th>Reason</th><th>Jira evidence</th></tr></thead><tbody>${
+      list.map(x => `<tr><td>${esc(x.region)}</td><td><b>${x.row.excelRow}</b></td><td>${esc(x.row.idRaw)}</td><td>${esc(x.row.retailer)}</td><td>${esc(x.row.status)}</td><td>${esc(x.reason)}</td><td style="font-size:11.5px">${esc(x.evidence||'')}</td></tr>`).join('')}</tbody></table>`;
+    const btns = !list.length ? '' : s.k === 'add'
+      ? `<button class="btn btn-ghost btn-sm" data-copy="add-rows">⧉ Copy rows (TSV)</button><button class="btn btn-ghost btn-sm" data-copy="add-keys">⧉ Copy ticket IDs</button>`
+      : s.k === 'check' ? `<button class="btn btn-ghost btn-sm" data-copy="check">⧉ Copy list</button>`
+      : `<button class="btn btn-ghost btn-sm" data-copy="${s.k}-ins">⧉ Copy cell edits</button><button class="btn btn-ghost btn-sm" data-copy="${s.k}-tsv">⧉ Copy as table</button>`;
+    if (s.k === 'add' && S.skipped.length && !S.noDash){
+      const sk = S.skipped.filter(x => J.region === 'All' || x.iss.regions.includes(J.region));
+      if (sk.length) body += `<details class="skip"><summary>${sk.length} open untracked ticket(s) skipped — not Critical on the dashboard</summary><table><tbody>${
+        sk.map(x => `<tr><td>${x.iss.url?`<a class="bk oth" target="_blank" href="${esc(x.iss.url)}">${esc(x.iss.key)}</a>`:esc(x.iss.key)}</td><td>${esc(x.iss.summary)}</td><td style="color:var(--muted)">${esc(x.why)}</td></tr>`).join('')}</tbody></table></details>`;
+    }
+    return `<div class="sec"><div class="hd"><span class="t">${s.t}</span><span class="n ${s.c}">${list.length}</span><span class="sp">${btns}<span class="copied" id="cp-${s.k}"></span></span></div>
+      <div class="desc">${s.d}</div><div class="bd">${body}</div></div>`;
+  }).join('');
+  const miss = [...S.missing];
+  const banner = (miss.length && J.source !== 'Jira API') ? `<div class="callout warn" style="margin-top:0">${miss.length} ticket IDs from the tracker are not in the imported Jira file, so their rows can't be checked.
+    <button class="btn btn-ghost btn-sm" data-copy="jql-missing" style="margin-left:8px">⧉ Copy JQL for these IDs</button><span class="copied" id="cp-jql"></span>
+    <div style="font-size:12px;color:var(--muted);margin-top:4px">Paste it into Jira issue search → Export CSV (all fields) → import together… or simply re-import a file that covers both.</div></div>` : '';
+  document.getElementById('syncBody').innerHTML = banner + html;
+  document.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => doCopy(b.dataset.copy));
+}
+function doCopy(kind){
+  const S = J.sync; let txt = '', sec = kind.split('-')[0];
+  const lab = { status:'Status', actual:'Actual Resolution', days:'Days Open', updated:'Last Updated' };
+  if (kind === 'jql-missing') txt = `key in (${[...S.missing].join(', ')})`;
+  else if (kind === 'add-rows') txt = S.add.filter(inReg).map(x => x.tsv).filter((v,i,a) => a.indexOf(v) === i).join('\n');
+  else if (kind === 'add-keys') txt = [...new Set(S.add.filter(inReg).map(x => x.iss.key))].join('\n');
+  else if (kind === 'check') txt = S.check.filter(inReg).map(x => `[${x.region}] Row ${x.row.excelRow} · ${x.row.idRaw} · ${x.row.retailer} — ${x.reason}`).join('\n');
+  else if (kind.endsWith('-ins')) txt = S[sec].filter(inReg).map(x => `[${x.region}] Row ${x.row.excelRow} (${x.row.ids.join(', ')} · ${x.row.retailer}): ` +
+      x.edits.map(e => `${e.ref} ${lab[e.field]||e.field} = ${e.value === '' ? '(clear)' : e.value}`).join(' ; ') + (x.dash ? `  [Dashboard: ${x.dash.status}]` : '')).join('\n');
+  else if (kind.endsWith('-tsv')){
+    const flds = ['status','actual','days','updated'];
+    const dc = sec === 'reopen';
+    txt = ['Region\tExcel row\tInternal Ticket ID\tRetailer\t' + flds.map(f => lab[f]).join('\t') + (dc ? '\tDashboard' : '') + '\tJira evidence',
+      ...S[sec].filter(inReg).map(x => [x.region, x.row.excelRow, x.row.ids.join(', '), x.row.retailer,
+        ...flds.map(f => { const e = x.edits.find(y => y.field === f); return e ? e.value : ''; }), ...(dc ? [x.dash ? x.dash.status : ''] : []), x.evidence].join('\t'))].join('\n');
+  }
+  navigator.clipboard.writeText(txt);
+  const el = document.getElementById('cp-' + (sec === 'jql' ? 'jql' : sec)); if (el){ el.textContent = '✓ copied'; setTimeout(() => el.textContent = '', 1800); }
+}
+async function exportSync(){
+  const S = J.sync; if (!S) return;
+  const wb = new ExcelJS.Workbook();
+  const style = ws => { const r = ws.getRow(1); r.eachCell(c => { c.font = { bold:true, color:{argb:'FFFFFFFF'} }; c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1E40AF'} }; });
+    ws.views = [{ state:'frozen', ySplit:1 }]; ws.autoFilter = { from:{row:1,column:1}, to:{row:1,column:ws.columnCount} }; };
+  const lab = { status:'Status', actual:'Actual Resolution', days:'Days Open', updated:'Last Updated' };
+  for (const k of ['resolve','reopen']){
+    const ws = wb.addWorksheet(k === 'resolve' ? 'Change to Resolved' : 'Reopen');
+    ws.columns = [{header:'Region',width:11},{header:'Excel row',width:10},{header:'Internal Ticket ID',width:24},{header:'Retailer',width:24},{header:'Current status',width:14},
+      {header:'Cell edits',width:70}, ...(k==='reopen'?[{header:'Dashboard',width:46}]:[]), {header:'Jira evidence',width:70}];
+    S[k].forEach(x => { const r = ws.addRow([x.region, x.row.excelRow, x.row.ids.join(', '), x.row.retailer, x.row.status, x.edits.map(e => `${e.ref} ${lab[e.field]} = ${e.value===''?'(clear)':e.value}`).join(' ; '), ...(k==='reopen'?[x.dash?x.dash.status:'']:[]), x.evidence]);
+      if (x.dash && x.dash.crit) r.eachCell(c => { c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFDECEC'} }; c.font = { bold:true, color:{argb:'FFB91C1C'} }; }); });
+    style(ws);
+  }
+  const wa = wb.addWorksheet('Add new rows');
+  wa.addRow(['Region (group)', 'Dashboard', ...J.tracker.head]);
+  [...new Map(S.add.map(x => [x.iss.key, x])).values()].forEach(x => wa.addRow([x.region, x.dash, ...x.tsv.split('\t')]));
+  wa.columns.forEach(c => c.width = 16); style(wa);
+  const wc = wb.addWorksheet('Manual check');
+  wc.columns = [{header:'Region',width:11},{header:'Excel row',width:10},{header:'Internal Ticket ID',width:24},{header:'Retailer',width:24},{header:'Status',width:12},{header:'Reason',width:70},{header:'Jira evidence',width:70}];
+  S.check.forEach(x => wc.addRow([x.region, x.row.excelRow, x.row.idRaw, x.row.retailer, x.row.status, x.reason, x.evidence||'']));
+  style(wc);
+  const buf = await wb.xlsx.writeBuffer();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  a.download = 'tracker_jira_changes_' + todayISO() + '.xlsx'; a.click();
+}
+
+/* ---------- wiring ---------- */
+loadCfg();
+document.querySelectorAll('[data-open-jira]').forEach(b => b.onclick = openModal);
+document.getElementById('jClose').onclick = () => document.getElementById('jiraMask').classList.remove('on');
+document.getElementById('jSave').onclick = async () => {
+  const g = id => document.getElementById(id).value.trim(), msg = document.getElementById('jMsg');
+  Object.assign(J.cfg, { base:g('jBase'), auth:g('jAuth'), user:g('jUser'), token:g('jToken'), remember:document.getElementById('jRemember').checked,
+    accField:g('jAccField'), retField:g('jRetField'), jql:toJql(g('jJql')) || DEFAULT_JQL_FN(), proxy:normProxy(g('jProxy')) });
+  document.getElementById('jJql').value = J.cfg.jql; document.getElementById('jProxy').value = J.cfg.proxy;
+  saveCfg(); msg.innerHTML = 'Testing…';
+  try{
+    await checkProxy();
+    const me = await jget('/rest/api/2/myself');
+    let extra = '';
+    try{ const d = await detectFields();
+      if (!J.cfg.accField && d.acc) J.cfg.accField = d.acc; if (!J.cfg.retField && d.ret) J.cfg.retField = d.ret; saveCfg();
+      extra = ` · Account field: <b>${esc(J.cfg.accField || 'not found — enter it manually')}</b>${d.accName ? ' ('+esc(d.accName)+')' : ''}${J.cfg.retField ? ' · Retailer field: <b>'+esc(J.cfg.retField)+'</b>' : ''}`;
+    }catch(e){ extra = ' · field list unavailable: ' + esc(e.message); }
+    msg.innerHTML = `<span style="color:#16a34a;font-weight:700">✓ Connected as ${esc(me.displayName || me.name || me.emailAddress || 'user')}</span>${extra}`;
+    setStat('ok', 'Jira connected — click Load');
+  }catch(e){ msg.innerHTML = `<span style="color:var(--bad);font-weight:700">✗ ${esc(e.message)}</span>`; setStat('err','Jira connection failed'); }
+};
+['btnLoadJira1','btnLoadJira2'].forEach(id => document.getElementById(id).onclick = loadJira);
+['btnImportJira1','btnImportJira2'].forEach(id => document.getElementById(id).onclick = () => document.getElementById('fileJira').click());
+document.getElementById('fileJira').onchange = e => { if (e.target.files[0]) importJira(e.target.files[0]); e.target.value = ''; };
+wireDrop('dropTracker','fileTracker', loadTracker);
+document.getElementById('btnCompare').onclick = compareTracker;
+document.getElementById('btnSyncXlsx').onclick = exportSync;
+document.getElementById('btnCopyNoBlk').onclick = copyNoBlocker;
+document.getElementById('fBlk').onchange = renderTable;
+document.getElementById('sSince').value = new Date(Date.now() - 60*864e5).toISOString().slice(0,10);
+if (J.cfg.token) setStat('', 'Jira configured — click Load');
+document.getElementById('btnCfg').onclick = () => { document.getElementById('cfgMsg').textContent = ''; document.getElementById('cfgMask').classList.add('on'); };
+document.getElementById('cfgClose').onclick = () => document.getElementById('cfgMask').classList.remove('on');
+document.getElementById('btnCfgClear').onclick = clearCfg;
+wireDrop('dropCfg', 'fileCfg', files => files[0] && importCfgFile(files[0]));
+initCfg().then(() => { loadCfg(); renderRegistry(); renderFiles(); });
+</script>
+</body>
+</html>
