@@ -50,6 +50,32 @@ The first run asks for your Jira host and saves it to `tools/jira_host.local.txt
 
 No proxy allowed? Use **Import Jira export** (Jira issue search → Export → CSV, all fields).
 
+## Ticket groups (v5.5)
+
+The **📌 Ticket groups** tab follows specific Jira tickets day by day.
+
+- **＋ New group** → bulk-paste ticket keys (Excel column, Jira links, email text — keys are extracted automatically). **✎ Edit / add tickets** adds, replaces or removes keys.
+- **↻ Refresh all groups** reads the current status from Jira (or from loaded / imported tickets) and stores a **daily snapshot** in this browser (45 days). *Auto-refresh daily* runs it the first time you open the tab each day.
+- **Compare with** an earlier snapshot shows status moves, newly resolved tickets, assignee / priority / due-date changes and a status trail.
+- **★ Close watch** pins a ticket. **Attention** flags: reopened / rejected, blocked / on hold, overdue, highest priority, no update for N days.
+- Views: by group, by account, by status. **Copy daily update** produces a text summary for Teams / email; table, keys, JQL and Excel exports are also available.
+- From **🔎 Ticket search**, *Add shown tickets to group…* moves search results into a group.
+
+Groups live in the browser. **🔐 Save groups to private config** writes them into your private config as `ticketGroups` and downloads it — load that file on another PC to get the same groups. Format:
+
+```json
+"ticketGroups": [
+  { "name": "Group 1", "color": "#2563eb", "note": "why I follow these",
+    "tickets": ["DQ-101", "DQ-102"], "closeWatch": ["DQ-102"], "notes": { "DQ-101": "waiting for client" } }
+]
+```
+
+## Updating the site from a local folder
+
+1. One-time: install Git, `git clone https://github.com/<user>/retailerhealthcheck.git`, sign in on the first `git push` (browser sign-in or a fine-grained token with *Contents: Read and write*).
+2. Each iteration: replace the changed files in the folder → run `publish.bat` (or `git add -A && git commit -m "msg" && git push`).
+3. Keep `config.private.json` **outside** the repo folder. `.gitignore` and `publish.bat` both block private files.
+
 ## Config format
 
 ```jsonc
@@ -64,6 +90,7 @@ No proxy allowed? Use **Import Jira export** (Jira issue search → Export → C
   ],
   "jira":   { "baseUrl": "https://jira.example.com", "defaultJql": "project = DEMO AND statusCategory != Done" },
   "links":  { "issueTrackerDashboard": "" },     // optional "Open Customer Issue Tracker" button
-  "tracker": { "vendorOwnerHeader": "Vendor Owner", "clientOwnerHeader": "Client Owner" }  // tracker column headers
+  "tracker": { "vendorOwnerHeader": "Vendor Owner", "clientOwnerHeader": "Client Owner" },  // tracker column headers
+  "ticketGroups": [ { "name": "Group 1", "tickets": ["DEMO-101"], "closeWatch": [] } ]  // optional, see Ticket groups
 }
 ```

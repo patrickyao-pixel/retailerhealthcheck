@@ -1,0 +1,13 @@
+# ---- private data: never commit ----
+config.json
+*.private.json
+config.private*
+ticket-groups.json
+tools/jira_host.local.txt
+*.xlsx
+*.xls
+*.csv
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.vscode/

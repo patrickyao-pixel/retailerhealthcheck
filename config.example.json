@@ -64,8 +64,34 @@
     "vendorOwnerHeader": "Vendor Owner",
     "clientOwnerHeader": "Client Owner"
   },
+  "ticketGroups": [
+    {
+      "name": "Demo escalation",
+      "color": "#2563eb",
+      "note": "Weekly client call",
+      "tickets": [
+        "DEMO-101",
+        "DEMO-102",
+        "DEMO-103"
+      ],
+      "closeWatch": [
+        "DEMO-102"
+      ]
+    },
+    {
+      "name": "Demo account 1001",
+      "color": "#e8590c",
+      "note": "",
+      "tickets": [
+        "DEMO-201",
+        "DEMO-202"
+      ],
+      "closeWatch": []
+    }
+  ],
   "_help": {
     "accounts": "n = display name, i = ISO country code (UK not GB), b = business unit name (must match businessUnits[].name), l = optional language tag (dutch/french), a = alternate ID, d = primary account ID (matched against the Jira Account field)",
-    "businessUnits.match": "case-insensitive regex tested against the uploaded report filename"
+    "businessUnits.match": "case-insensitive regex tested against the uploaded report filename",
+    "ticketGroups": "optional — name, color (hex), note, tickets (Jira keys), closeWatch (subset of tickets, pinned + highlighted), notes ({\"KEY\":\"text\"}). Loaded into the 📌 Ticket groups tab when this browser has no groups yet."
   }
 }

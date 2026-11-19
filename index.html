@@ -235,6 +235,38 @@ details.tsg[open]>summary::before{transform:rotate(90deg)}
 .tstable td{font-size:12.5px;vertical-align:top}
 .qs{border:0;background:none;cursor:pointer;font-size:12px;padding:0 0 0 4px;opacity:.55}
 .qs:hover{opacity:1}
+/* ---------- v5.5: ticket groups ---------- */
+.wgbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.wgchip{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:#fff;font-weight:700;font-size:13px;cursor:pointer;color:#334155}
+.wgchip i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.wgchip .c{font-size:11.5px;color:var(--muted);font-weight:700}
+.wgchip.on{border-color:var(--gc,#1e40af);box-shadow:0 0 0 2px var(--gc,#1e40af) inset}
+.wgdot{width:12px;height:12px;border-radius:4px;display:inline-block}
+.wgtag{display:inline-block;color:#fff;border-radius:6px;padding:0 7px;font-size:10.5px;font-weight:700}
+.wprog{width:110px;height:7px;border-radius:5px;background:#e2e8f0;overflow:hidden;display:inline-block}
+.wprog i{display:block;height:100%;background:var(--ok)}
+.wpct{font-size:12px;color:var(--muted);font-weight:600}
+.wsec summary .btn{margin-left:4px}
+.wtable td{font-size:12.5px;vertical-align:top}
+.wtable tr.wwatch td{background:#fffbeb}
+.wtable tr.wdone td{opacity:.62}
+.wsum{font-weight:600;line-height:1.4}
+.wmeta{display:flex;flex-wrap:wrap;gap:5px;align-items:center;font-size:11.5px;color:var(--muted);margin-top:3px}
+.wtrail{font-size:11px;color:#7c3aed;margin-top:3px}
+.wstar{border:0;background:none;font-size:18px;cursor:pointer;color:#cbd5e1;padding:0}
+.wstar.on{color:#eab308}
+.wch{font-size:11px;font-weight:700;margin-top:3px;border-radius:5px;padding:1px 6px;display:inline-block}
+.wch-st{background:#ede9fe;color:#5b21b6}.wch-res{background:#dcfce7;color:#15803d}.wch-bad{background:#fee2e2;color:#b91c1c}
+.wch-oth{background:#f1f5f9;color:#475569}.wch-act{background:#e0f2fe;color:#0369a1}.wch-new{background:#fef9c3;color:#854d0e}
+.wflag{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px;margin:1px 3px 1px 0;white-space:nowrap}
+.wf-bad{background:#fee2e2;color:#b91c1c}.wf-warn{background:#fef3c7;color:#92400e}.wf-ok{background:#dcfce7;color:#15803d}
+.wf-mut{background:#f1f5f9;color:#64748b}.wf-st{background:#ede9fe;color:#5b21b6}
+.st-done{background:#dcfce7;color:#15803d}
+.wnote{width:150px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;font-size:12px}
+.wopts{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:#475569}
+.wopts label{display:inline-flex;gap:5px;align-items:center;cursor:pointer}
+.wgc{width:24px;height:24px;border-radius:7px;display:inline-block;cursor:pointer;margin-right:6px;border:2px solid #fff}
+.wgc.on{box-shadow:0 0 0 2px #0f172a}
 </style>
 </head>
 <body>
@@ -247,6 +279,7 @@ details.tsg[open]>summary::before{transform:rotate(90deg)}
     <div class="tab on" data-tab="monitor">Monitor</div>
     <div class="tab" data-tab="sync">Jira &amp; Tracker sync</div>
     <div class="tab" data-tab="search">🔎 Ticket search</div>
+    <div class="tab" data-tab="watch">📌 Ticket groups</div>
     <div class="tab" data-tab="guide">User guide</div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:8px;padding-bottom:6px"><span class="jstat" id="cfgStatus"><i></i><span>No workspace config loaded</span></span><button class="btn btn-ghost btn-sm" id="btnCfg">⚙ Workspace config</button></div>
   </div>
@@ -475,6 +508,7 @@ details.tsg[open]>summary::before{transform:rotate(90deg)}
         <button class="btn btn-ghost btn-sm" id="tsCopyKeys">⧉ Copy keys</button>
         <button class="btn btn-ghost btn-sm" id="tsCopyTsv">⧉ Copy as table</button>
         <button class="btn btn-primary btn-sm" id="tsXlsx">⬇ Excel</button>
+        <select id="tsToGroup" style="width:auto;padding:6px 9px;font-size:12.5px"></select>
         <span class="copied" id="tsCopied"></span>
       </div>
     </div>
@@ -513,6 +547,60 @@ details.tsg[open]>summary::before{transform:rotate(90deg)}
       <div style="margin-top:10px;font-size:15px">Connect Jira, then search by account ID or retailer.</div>
       <div style="margin-top:6px;font-size:12.5px">Tip: on the Monitor tab, click 🔍 next to an Account ID to search that account + retailer here.</div>
     </div>
+  </div>
+</div>
+
+<!-- ============ TICKET GROUPS TAB ============ -->
+<div class="wrap" id="tab-watch" style="display:none">
+  <div class="card">
+    <div class="flexrow" style="justify-content:space-between;margin-bottom:12px">
+      <div>
+        <h2 style="margin:0">📌 Ticket groups</h2>
+        <p class="sub" style="margin:2px 0 0">Bulk-paste ticket keys into groups, refresh once a day and see what moved. ★ = close watch. Groups are kept in this browser and can be saved into your private config.json.</p>
+      </div>
+      <div class="flexrow">
+        <button class="btn btn-ghost btn-sm" id="wImport">⇪ Import groups</button>
+        <button class="btn btn-ghost btn-sm" id="wExport">⬇ Export groups</button>
+        <button class="btn btn-ghost btn-sm" id="wSaveCfg" title="Writes the groups into your private config and downloads it">🔐 Save groups to private config</button>
+        <input type="file" id="fileWG" accept=".json" style="display:none" />
+      </div>
+    </div>
+    <div class="wgbar" id="wGroups"></div>
+  </div>
+
+  <div class="card">
+    <div class="flexrow" style="justify-content:space-between">
+      <div class="flexrow">
+        <button class="btn btn-jira" id="wRefresh">↻ Refresh all groups</button>
+        <span id="wStatus" style="font-size:12.5px;color:var(--muted)"></span>
+      </div>
+      <div class="flexrow">
+        <label class="lbl" style="margin:0">Compare with</label>
+        <select id="wBase" style="width:auto"></select>
+      </div>
+    </div>
+    <div class="tskpis" id="wKpis" style="margin-top:14px"></div>
+    <div class="tsview">
+      <div class="seg" id="wView"><span class="segl">View</span>
+        <button data-v="group" class="on">By group</button><button data-v="account">By account</button><button data-v="status">By status</button></div>
+      <input type="text" id="wFilter" placeholder="Filter: key, summary, assignee, account…" style="max-width:260px" />
+      <div class="wopts">
+        <label><input type="checkbox" id="wo-onlyWatch" /> ★ close watch only</label>
+        <label><input type="checkbox" id="wo-onlyChanged" /> changed only</label>
+        <label><input type="checkbox" id="wo-hideResolved" /> hide resolved</label>
+        <label>stale after <input type="number" id="wStale" min="1" max="60" style="width:58px;padding:4px 6px" /> days</label>
+        <label title="Refresh automatically the first time you open this tab each day"><input type="checkbox" id="wAuto" /> auto-refresh daily</label>
+      </div>
+    </div>
+    <div class="flexrow" style="margin-bottom:14px">
+      <button class="btn btn-primary btn-sm" id="wCopyDaily">⧉ Copy daily update</button>
+      <button class="btn btn-ghost btn-sm" id="wCopyTsv">⧉ Copy as table</button>
+      <button class="btn btn-ghost btn-sm" id="wCopyKeys">⧉ Copy keys</button>
+      <button class="btn btn-ghost btn-sm" id="wCopyJql">⧉ Copy JQL</button>
+      <button class="btn btn-ghost btn-sm" id="wXlsx">⬇ Excel</button>
+      <span class="copied" id="wFlash"></span>
+    </div>
+    <div id="wBody"></div>
   </div>
 </div>
 
@@ -625,6 +713,19 @@ details.tsg[open]>summary::before{transform:rotate(90deg)}
       <li>On the Monitor tab, click 🔍 next to an Account ID to jump here with that account + retailer.</li>
     </ul>
 
+    <h3>Ticket groups (watchlists)</h3>
+    <p>Use the <b>📌 Ticket groups</b> tab to follow specific tickets day by day, e.g. one group per escalation, account or client call.</p>
+    <ul>
+      <li><b>＋ New group</b> → paste ticket keys in any format (Excel column, Jira links, email text). Use <b>✎ Edit / add tickets</b> to add, replace or remove keys later.</li>
+      <li><b>↻ Refresh all groups</b> pulls the current status from Jira (or from the loaded / imported tickets if no token is set) and saves a <b>daily snapshot</b> in this browser (last 45 days). With <b>auto-refresh daily</b>, it runs the first time you open the tab each day.</li>
+      <li><b>Compare with</b> picks the earlier snapshot. Changes are shown under the status: status moves, newly resolved, assignee / priority / due date changes, or other activity. The purple line shows the status trail across snapshots.</li>
+      <li><b>★ Close watch</b> pins a ticket to the top of its group (yellow). <b>Attention</b> flags open tickets that are reopened / rejected, blocked / on hold, overdue, highest priority, or have had no update for N days (<b>stale after</b>).</li>
+      <li><b>View</b>: by group, or across groups by <b>account</b> (Jira Account field) or <b>status</b>.</li>
+      <li><b>Copy daily update</b> gives a ready-to-paste text summary (changed / needs attention / no change) for Teams or email. Also available: copy as a table, keys, JQL, or Excel.</li>
+      <li>In <b>🔎 Ticket search</b>, use <b>☆ Add shown tickets to group…</b> to put search results into a group.</li>
+      <li>Groups are kept in this browser. <b>🔐 Save groups to private config</b> writes them into your config.json as <code>ticketGroups</code> and downloads it, so another PC/browser gets the same groups when you load that config. <b>Never commit</b> the private config.</li>
+    </ul>
+
     <h3>Troubleshooting</h3>
     <ul>
       <li><b>File shows "no Country / Retailer rows found"</b> — the export must contain the <code>First Level</code> and <code>Second Level</code> columns. Re-export as Two Levels.</li>
@@ -649,6 +750,26 @@ details.tsg[open]>summary::before{transform:rotate(90deg)}
     <div id="cfgMsg" style="margin:10px 0;font-size:13px"></div>
     <div class="mnote">To update accounts later, edit your private config.json and load it again. Use <b>Remove</b> on shared computers.</div>
     <button class="btn btn-ghost" id="btnCfgClear">Remove config from this browser</button>
+  </div>
+</div>
+
+<!-- ============ GROUP EDITOR ============ -->
+<div class="mask" id="wgMask">
+  <div class="modal">
+    <h3><span id="wgTitle">New ticket group</span> <button class="x" id="wgClose">✕</button></h3>
+    <div class="mgrid">
+      <div class="mrow"><label class="lbl">Group name</label><input id="wgName" /></div>
+      <div class="mrow"><label class="lbl">Colour</label><div id="wgColors" style="padding-top:6px"></div></div>
+    </div>
+    <div class="mrow"><label class="lbl">Note · optional (why you follow these)</label><input id="wgNote" placeholder="e.g. APAC Shopee escalation · weekly call with client" /></div>
+    <div class="mrow"><label class="lbl">Ticket keys — bulk paste</label>
+      <textarea id="wgKeys" style="min-height:120px" placeholder="DQ-201872, DQ-194353&#10;BRC-361729&#10;https://jira.example.com/browse/DQ-203300"></textarea>
+      <div class="mhint" id="wgParsed"></div></div>
+    <div class="mrow" id="wgModeRow"><label class="lbl">Pasted keys should…</label>
+      <select id="wgMode"><option value="add">be added to the group</option><option value="replace">replace the whole group</option><option value="remove">be removed from the group</option></select>
+      <div class="mhint" id="wgCur"></div></div>
+    <button class="btn btn-jira btn-wide" id="wgSave">Save group</button>
+    <button class="btn btn-ghost" id="wgDel" style="margin-top:10px;color:var(--bad)">Delete group</button>
   </div>
 </div>
 
@@ -721,6 +842,7 @@ function validateCfg(c){
   if (!Array.isArray(c.accounts)) throw new Error('"accounts" must be an array');
   c.accounts.forEach((a,ix) => { if (!a.i || !a.b || !a.d) throw new Error(`accounts[${ix}] needs i (ISO), b (business unit), d (account id)`); });
   if (c.businessUnits && !Array.isArray(c.businessUnits)) throw new Error('"businessUnits" must be an array');
+  if (c.ticketGroups && !Array.isArray(c.ticketGroups)) throw new Error('"ticketGroups" must be an array');
   return c;
 }
 function applyCfg(c, source){
@@ -760,6 +882,7 @@ async function importCfgFile(f){
     applyCfg(c, 'this browser');
     msg.innerHTML = `<span style="color:#16a34a;font-weight:700">✓ Loaded ${ACCOUNTS.length} accounts from ${f.name}</span>`;
     loadCfg(); renderRegistry(); renderFiles(); if (state.reports.length) run();
+    watchSeedFromCfg(c, true);
   }catch(e){ msg.innerHTML = `<span style="color:var(--bad);font-weight:700">✗ ${e.message}</span>`; }
 }
 function clearCfg(){ localStorage.removeItem(CFG_KEY); applyCfg(null, 'none'); renderRegistry(); renderFiles(); document.getElementById('cfgMsg').textContent = 'Config removed from this browser.'; }
@@ -1300,6 +1423,7 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
   document.getElementById('tab-guide').style.display   = t.dataset.tab==='guide'?'':'none';
   document.getElementById('tab-sync').style.display    = t.dataset.tab==='sync'?'':'none';
   document.getElementById('tab-search').style.display  = t.dataset.tab==='search'?'':'none';
+  document.getElementById('tab-watch').style.display   = t.dataset.tab==='watch'?'':'none';
   window.scrollTo({top:0,behavior:'smooth'});
 });
 document.getElementById('btnThReset').onclick=()=>{ state.thresholds={...TH_RECOMMENDED}; saveTh(); renderThresholds(); run(); };
@@ -1995,7 +2119,7 @@ document.getElementById('btnCfg').onclick = () => { document.getElementById('cfg
 document.getElementById('cfgClose').onclick = () => document.getElementById('cfgMask').classList.remove('on');
 document.getElementById('btnCfgClear').onclick = clearCfg;
 wireDrop('dropCfg', 'fileCfg', files => files[0] && importCfgFile(files[0]));
-initCfg().then(() => { loadCfg(); renderRegistry(); renderFiles(); });
+initCfg().then(() => { loadCfg(); renderRegistry(); renderFiles(); watchInit(); });
 
 /* =====================================================================
    v5.4 — Ticket search (unresolved = status not Resolved / Closed)
@@ -2310,6 +2434,439 @@ document.getElementById('tbody').addEventListener('click', e => {
   openTicketSearch(b.dataset.q, b.dataset.p);
 });
 renderRecent();
+
+
+/* =====================================================================
+   v5.5 — Ticket groups (watchlists) + daily progress snapshots
+   Groups / snapshots live in this browser (localStorage). Groups can also
+   be stored in your private config.json under "ticketGroups".
+   ===================================================================== */
+const WG_KEY = 'rdhm_watch_groups', WS_KEY = 'rdhm_watch_snaps', WO_KEY = 'rdhm_watch_opts';
+const WG_COLORS = ['#2563eb','#e8590c','#16a34a','#7c3aed','#db2777','#0891b2','#ca8a04','#475569'];
+const W = {
+  groups: [], snaps: {}, cur: {}, missing: new Set(), sel: null, view: 'group', base: '',
+  opts: Object.assign({ staleDays: 5, autoRefresh: true, hideResolved: false, onlyWatch: false, onlyChanged: false }, (() => { try{ return JSON.parse(localStorage.getItem(WO_KEY)) || {}; }catch(e){ return {}; } })()),
+  lastAt: null, src: '', busy: false, editing: null
+};
+const wLocalDate = d => d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : '';
+const wToday = () => wLocalDate(new Date());
+const wSave = () => localStorage.setItem(WG_KEY, JSON.stringify(W.groups));
+const wSaveOpts = () => localStorage.setItem(WO_KEY, JSON.stringify(W.opts));
+const WKEY_RE = /\b[A-Z][A-Z0-9]{1,9}-\d{1,7}\b/g;
+const wKeys = t => [...new Set(String(t || '').toUpperCase().match(WKEY_RE) || [])];
+const wUid = () => 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const wAllKeys = () => [...new Set(W.groups.flatMap(g => g.tickets))];
+const wIsWatch = k => W.groups.some(g => (g.closeWatch || []).includes(k));
+const wNote = k => { for (const g of W.groups){ const n = (g.notes || {})[k]; if (n) return n; } return ''; };
+
+function wNormGroup(g, ix){
+  return { id: g.id || wUid(), name: String(g.name || `Group ${ix + 1}`), color: g.color || WG_COLORS[ix % WG_COLORS.length],
+    note: String(g.note || ''), tickets: wKeys((g.tickets || []).join(' ')), closeWatch: wKeys((g.closeWatch || []).join(' ')), notes: Object.assign({}, g.notes || {}) };
+}
+function wLoad(){
+  try{ const g = JSON.parse(localStorage.getItem(WG_KEY)); if (Array.isArray(g)) W.groups = g.map(wNormGroup); }catch(e){}
+  try{ W.snaps = JSON.parse(localStorage.getItem(WS_KEY)) || {}; }catch(e){ W.snaps = {}; }
+  const days = Object.keys(W.snaps).sort();
+  if (days.length){ const d = days[days.length - 1]; W.cur = W.snaps[d].t || {}; W.lastAt = W.snaps[d].at ? new Date(W.snaps[d].at) : null; W.src = W.snaps[d].src || ''; W.missing = new Set(W.snaps[d].missing || []); }
+}
+/* ---------- config.json integration ---------- */
+function watchSeedFromCfg(c, ask){
+  const list = (c && Array.isArray(c.ticketGroups)) ? c.ticketGroups : [];
+  if (!list.length) return;
+  if (W.groups.length && ask && !confirm(`Your config contains ${list.length} ticket group(s).\n\nOK = replace the groups in this browser with the config version\nCancel = keep the groups in this browser`)) return;
+  if (W.groups.length && !ask) return;
+  W.groups = list.map(wNormGroup); W.sel = W.groups[0] ? W.groups[0].id : null; wSave(); renderWatch();
+}
+function wGroupsForCfg(){
+  return W.groups.map(g => ({ name: g.name, color: g.color, note: g.note, tickets: g.tickets, closeWatch: g.closeWatch,
+    ...(Object.keys(g.notes || {}).length ? { notes: g.notes } : {}) }));
+}
+function wDownload(name, obj){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' }));
+  a.download = name; a.click();
+}
+function wSaveToConfig(){
+  let base = null; try{ base = JSON.parse(localStorage.getItem(CFG_KEY)); }catch(e){}
+  if (!base){ if (!confirm('No private config is loaded in this browser. Download a groups-only JSON instead?')) return;
+    wDownload('ticket-groups.json', { ticketGroups: wGroupsForCfg() }); return; }
+  base.ticketGroups = wGroupsForCfg();
+  localStorage.setItem(CFG_KEY, JSON.stringify(base));
+  wDownload('config.private.json', base);
+  wFlash('✓ config.private.json downloaded — replace your private copy (never commit it)');
+}
+async function wImportGroups(file){
+  try{
+    const d = JSON.parse(await file.text());
+    const list = Array.isArray(d) ? d : d.ticketGroups;
+    if (!Array.isArray(list)) throw new Error('no "ticketGroups" array in this file');
+    const replace = !W.groups.length || confirm(`Import ${list.length} group(s).\n\nOK = replace current groups\nCancel = add them to the current groups`);
+    const add = list.map((g, i) => wNormGroup(g, W.groups.length + i));
+    W.groups = replace ? add : [...W.groups, ...add];
+    W.sel = W.groups[0] ? W.groups[0].id : null; wSave(); renderWatch(); wFlash(`✓ ${list.length} group(s) imported`);
+  }catch(e){ alert('Import failed: ' + e.message); }
+}
+/* ---------- group editing ---------- */
+function wGroup(id){ return W.groups.find(g => g.id === id); }
+function wOpenEditor(id){
+  const g = id ? wGroup(id) : null; W.editing = id || null;
+  const $ = x => document.getElementById(x);
+  $('wgTitle').textContent = g ? `Edit group · ${g.name}` : 'New ticket group';
+  $('wgName').value = g ? g.name : `Group ${W.groups.length + 1}`;
+  $('wgNote').value = g ? g.note : '';
+  $('wgKeys').value = '';
+  $('wgMode').value = 'add';
+  $('wgModeRow').style.display = g ? '' : 'none';
+  $('wgColors').innerHTML = WG_COLORS.map(c => `<span class="wgc ${(g ? g.color : WG_COLORS[W.groups.length % WG_COLORS.length]) === c ? 'on' : ''}" data-c="${c}" style="background:${c}"></span>`).join('');
+  $('wgColors').querySelectorAll('.wgc').forEach(s => s.onclick = () => { $('wgColors').querySelectorAll('.wgc').forEach(x => x.classList.remove('on')); s.classList.add('on'); });
+  $('wgDel').style.display = g ? '' : 'none';
+  $('wgCur').textContent = g ? `${g.tickets.length} ticket(s) in this group` : '';
+  wParsePreview(); $('wgMask').classList.add('on'); setTimeout(() => $('wgKeys').focus(), 50);
+}
+function wParsePreview(){
+  const k = wKeys(document.getElementById('wgKeys').value);
+  document.getElementById('wgParsed').innerHTML = k.length ? `<b>${k.length}</b> ticket key(s) found: ` + k.slice(0, 30).map(x => `<span class="qchip qc-key">${esc(x)}</span>`).join('') + (k.length > 30 ? ' …' : '') : 'Paste anything — Excel columns, Jira URLs, email text. Keys like <code>DQ-201872</code> are extracted automatically.';
+}
+function wSaveEditor(){
+  const $ = x => document.getElementById(x);
+  const name = $('wgName').value.trim() || `Group ${W.groups.length + 1}`;
+  const color = ($('wgColors').querySelector('.wgc.on') || {}).dataset?.c || WG_COLORS[0];
+  const keys = wKeys($('wgKeys').value);
+  let g = W.editing ? wGroup(W.editing) : null;
+  if (!g){ g = wNormGroup({ name, color, note: $('wgNote').value, tickets: keys }, W.groups.length); W.groups.push(g); }
+  else {
+    Object.assign(g, { name, color, note: $('wgNote').value });
+    const mode = $('wgMode').value;
+    if (mode === 'replace') g.tickets = keys;
+    else if (mode === 'remove') g.tickets = g.tickets.filter(k => !keys.includes(k));
+    else g.tickets = [...new Set([...g.tickets, ...keys])];
+    g.closeWatch = g.closeWatch.filter(k => g.tickets.includes(k));
+  }
+  W.sel = g.id; wSave(); $('wgMask').classList.remove('on');
+  const fresh = keys.filter(k => !W.cur[k]);
+  renderWatch();
+  if (fresh.length && (J.cfg.token || J.issues.length)) watchRefresh(fresh);
+}
+function wDeleteGroup(){
+  const g = wGroup(W.editing); if (!g || !confirm(`Delete group "${g.name}"? (tickets stay in other groups)`)) return;
+  W.groups = W.groups.filter(x => x.id !== g.id); W.sel = W.groups[0] ? W.groups[0].id : null;
+  wSave(); document.getElementById('wgMask').classList.remove('on'); renderWatch();
+}
+function wToggleWatch(gid, key){
+  const g = wGroup(gid); if (!g) return;
+  g.closeWatch = g.closeWatch.includes(key) ? g.closeWatch.filter(k => k !== key) : [...g.closeWatch, key];
+  wSave(); renderWatch();
+}
+function wRemoveKey(gid, key){
+  const g = wGroup(gid); if (!g) return;
+  g.tickets = g.tickets.filter(k => k !== key); g.closeWatch = g.closeWatch.filter(k => k !== key); delete g.notes[key];
+  wSave(); renderWatch();
+}
+function wSetNote(gid, key, text){
+  const g = wGroup(gid); if (!g) return;
+  if (text.trim()) g.notes[key] = text.trim(); else delete g.notes[key];
+  wSave();
+}
+/* ---------- refresh (live Jira → fallback to loaded / imported tickets) ---------- */
+const wSnapOf = i => ({ s: i.summary, st: i.status, as: i.assignee, pr: i.priority, ty: i.type, up: i.updated, cr: i.created, du: i.due, rs: i.resolved,
+  ac: parseAccounts(i.accountsRaw || []), rt: i.retailer || (i.cands[0] ? i.cands[0].raw : ''), u: i.url });
+async function watchRefresh(onlyKeys){
+  if (W.busy) return;
+  const keys = onlyKeys || wAllKeys();
+  if (!keys.length){ wFlash('Add tickets to a group first'); return; }
+  W.busy = true; wBusy(true);
+  const got = {}, missing = new Set();
+  let src = '';
+  try{
+    if (J.cfg.token){
+      await checkProxy();
+      if (!J.cfg.accField){ try{ const d = await detectFields(); J.cfg.accField = d.acc; J.cfg.retField = J.cfg.retField || d.ret; saveCfg(); }catch(e){} }
+      const s1 = document.getElementById('jStat1'), keep = [s1.className, s1.querySelector('span').textContent];
+      try{
+        for (let i = 0; i < keys.length; i += 40){
+          const chunk = keys.slice(i, i + 40);
+          document.getElementById('wStatus').textContent = `Refreshing ${Math.min(i + 40, keys.length)} / ${keys.length}…`;
+          try{ (await searchAll(`key in (${chunk.join(',')})`, 200)).forEach(x => got[x.key] = x); }
+          catch(e){
+            if (e.status !== 400) throw e;          /* 400 = one key does not exist → fetch one by one */
+            for (const k of chunk){ try{ const x = restToIssue(await jget(`/rest/api/2/issue/${k}`)); got[k] = x; got[x.key] = x; }catch(_){ } }
+          }
+        }
+      } finally { setStat(keep[0].replace('jstat', '').trim(), keep[1]); }
+      src = 'Live from Jira';
+    } else if (J.issues.length){
+      keys.forEach(k => { if (J.byKey[k]) got[k] = J.byKey[k]; });
+      src = `Loaded tickets (${J.source})`;
+    } else throw new Error('Connect Jira (⚙ Connect Jira) or import a Jira export first.');
+  }catch(e){
+    W.busy = false; wBusy(false);
+    document.getElementById('wStatus').innerHTML = `<span style="color:var(--bad);font-weight:700">Refresh failed: ${esc(e.message)}</span>`; return;
+  }
+  keys.forEach(k => { if (!got[k]) missing.add(k); });
+  const today = wToday();
+  const prevToday = (W.snaps[today] && W.snaps[today].t) || {};
+  const t = Object.assign({}, onlyKeys ? (W.snaps[today] ? prevToday : Object.assign({}, W.cur)) : {});
+  keys.forEach(k => { if (got[k]) t[k] = wSnapOf(got[k]); else if (onlyKeys) delete t[k]; });
+  const prevMissing = new Set(onlyKeys ? [...W.missing].filter(k => !keys.includes(k)) : []);
+  missing.forEach(k => prevMissing.add(k));
+  W.snaps[today] = { at: new Date().toISOString(), src, t, missing: [...prevMissing] };
+  const days = Object.keys(W.snaps).sort(); while (days.length > 45) delete W.snaps[days.shift()];
+  try{ localStorage.setItem(WS_KEY, JSON.stringify(W.snaps)); }
+  catch(e){ const d2 = Object.keys(W.snaps).sort(); d2.slice(0, Math.ceil(d2.length / 2)).forEach(d => delete W.snaps[d]); localStorage.setItem(WS_KEY, JSON.stringify(W.snaps)); }
+  W.cur = t; W.missing = prevMissing; W.lastAt = new Date(); W.src = src;
+  W.busy = false; wBusy(false); renderWatch();
+}
+function wBusy(on){ const b = document.getElementById('wRefresh'); b.disabled = on; b.textContent = on ? 'Refreshing…' : '↻ Refresh all groups'; }
+/* ---------- compare with an earlier snapshot ---------- */
+function wBaseDays(){ const today = wToday(); return Object.keys(W.snaps).filter(d => d < today).sort().reverse(); }
+function wBaseSnap(){ const d = W.base || wBaseDays()[0]; return d && W.snaps[d] ? { date: d, t: W.snaps[d].t || {} } : null; }
+const shortSt = s => String(s || '—').replace(/^dev:\s*/i, '');
+function wChanges(k){
+  const c = W.cur[k], b = wBaseSnap();
+  if (!c || !b) return [];
+  const o = b.t[k];
+  if (!o) return [{ t: 'new', txt: 'first seen' }];
+  const out = [];
+  if (o.st !== c.st) out.push({ t: isClosedStatus(c.st) ? 'res' : (/reject|reopen/i.test(c.st) ? 'bad' : 'st'), txt: `${shortSt(o.st)} → ${shortSt(c.st)}` });
+  if ('as' in o && (o.as || '') !== (c.as || '')) out.push({ t: 'oth', txt: `assignee → ${c.as || 'Unassigned'}` });
+  if ('pr' in o && (o.pr || '') !== (c.pr || '')) out.push({ t: 'oth', txt: `priority ${o.pr || '—'} → ${c.pr || '—'}` });
+  if ('du' in o && (o.du || '') !== (c.du || '')) out.push({ t: 'oth', txt: `due ${o.du || '—'} → ${c.du || '—'}` });
+  if (!out.length && (c.up || '') > (o.up || '')) out.push({ t: 'act', txt: 'updated (comment / field)' });
+  return out;
+}
+function wTrail(k){
+  const days = Object.keys(W.snaps).sort(); const out = []; let last = null;
+  for (const d of days){ const x = (W.snaps[d].t || {})[k]; if (!x) continue; if (x.st !== last){ out.push({ d, st: x.st }); last = x.st; } }
+  return out;
+}
+function wFlags(k){
+  const c = W.cur[k]; if (!c) return W.missing.has(k) ? [{ c: 'bad', t: 'Not found / no access' }] : [{ c: 'mut', t: 'Not refreshed yet' }];
+  if (isClosedStatus(c.st)) return [{ c: 'ok', t: 'Resolved' + (c.rs ? ' ' + c.rs.slice(5) : '') }];
+  const f = [], today = wToday(), stg = stageOf(c.st);
+  if (stg === 'Reopened / Rejected') f.push({ c: 'bad', t: 'Reopened / rejected' });
+  if (stg === 'Blocked / On hold') f.push({ c: 'bad', t: 'Blocked / on hold' });
+  if (c.du && c.du < today) f.push({ c: 'bad', t: `Overdue (due ${c.du.slice(5)})` });
+  const idle = c.up ? Math.round((Date.now() - new Date(c.up)) / 864e5) : null;
+  if (idle !== null && idle >= W.opts.staleDays) f.push({ c: 'warn', t: `No update ${idle} d` });
+  if (prioRank(c.pr) === 0) f.push({ c: 'warn', t: c.pr });
+  return f;
+}
+const wNeedsAttention = k => wFlags(k).some(f => f.c === 'bad' || f.c === 'warn');
+/* ---------- render ---------- */
+function wFlash(t){ const el = document.getElementById('wFlash'); el.textContent = t; clearTimeout(wFlash.h); wFlash.h = setTimeout(() => el.textContent = '', 3000); }
+function wFilterKeys(keys){
+  const f = document.getElementById('wFilter').value.trim().toLowerCase();
+  return keys.filter(k => {
+    const c = W.cur[k];
+    if (W.opts.hideResolved && c && isClosedStatus(c.st)) return false;
+    if (W.opts.onlyWatch && !wIsWatch(k)) return false;
+    if (W.opts.onlyChanged && !wChanges(k).length) return false;
+    if (f && ![k, c?.s, c?.st, c?.as, c?.rt, (c?.ac || []).join(' '), wNote(k)].join(' ').toLowerCase().includes(f)) return false;
+    return true;
+  });
+}
+function wSortKeys(keys, gid){
+  const g = gid ? wGroup(gid) : null;
+  const w = k => g ? (g.closeWatch.includes(k) ? 0 : 1) : (wIsWatch(k) ? 0 : 1);
+  const done = k => W.cur[k] && isClosedStatus(W.cur[k].st) ? 1 : 0;
+  const stg = k => W.cur[k] ? STAGE_ORDER.indexOf(stageOf(W.cur[k].st)) : -1;
+  return [...keys].sort((a, b) => w(a) - w(b) || done(a) - done(b) || (wNeedsAttention(b) - wNeedsAttention(a)) || stg(a) - stg(b) || a.localeCompare(b, undefined, { numeric: true }));
+}
+function wProgress(keys){
+  const n = keys.length, r = keys.filter(k => W.cur[k] && isClosedStatus(W.cur[k].st)).length;
+  return { n, r, pct: n ? Math.round(r / n * 100) : 0 };
+}
+function wRow(k, gid){
+  const c = W.cur[k], g = gid ? wGroup(gid) : null, watch = g ? g.closeWatch.includes(k) : wIsWatch(k);
+  const ch = wChanges(k), fl = wFlags(k), tr = wTrail(k);
+  const stg = c ? stageOf(c.st) : '', done = c && isClosedStatus(c.st);
+  const url = (c && c.u) || (J.cfg.base ? J.cfg.base.replace(/\/+$/, '') + '/browse/' + k : '');
+  const idle = c && c.up ? Math.round((Date.now() - new Date(c.up)) / 864e5) : '';
+  const note = g ? (g.notes[k] || '') : wNote(k);
+  const inGroups = W.view !== 'group' ? W.groups.filter(x => x.tickets.includes(k)).map(x => `<span class="wgtag" style="background:${x.color}">${esc(x.name)}</span>`).join('') : '';
+  return `<tr class="${watch ? 'wwatch' : ''} ${done ? 'wdone' : ''} ${ch.length ? 'wchg' : ''}">
+    <td>${g ? `<button class="wstar ${watch ? 'on' : ''}" title="Close watch" data-w="${gid}|${k}">${watch ? '★' : '☆'}</button>` : (watch ? '<span class="wstar on">★</span>' : '')}</td>
+    <td>${url ? `<a class="bk ${done ? 'oth' : 'hit'}" href="${esc(url)}" target="_blank">${esc(k)}</a>` : `<b>${esc(k)}</b>`}${c && c.ty ? `<div><span class="ty" style="background:${typeColor(c.ty)}">${esc(c.ty)}</span></div>` : ''}</td>
+    <td style="min-width:240px"><div class="wsum">${c ? esc(c.s) : '<span style="color:var(--muted)">—</span>'}</div>
+      <div class="wmeta">${(c?.ac || []).slice(0, 4).map(n => `<span class="acc" title="${esc(accLabel(n))}">${esc(n)}</span>`).join('')}${c && c.rt ? `<span>🛒 ${esc(c.rt)}</span>` : ''}${inGroups}</div>
+      ${tr.length > 1 ? `<div class="wtrail">${tr.slice(-4).map(x => `${x.d.slice(5)} ${esc(shortSt(x.st))}`).join(' › ')}</div>` : ''}</td>
+    <td>${c ? `<span class="st ${done ? 'st-done' : STAGE_CLS[stg]}">${esc(c.st)}</span>` : ''}${ch.map(x => `<div class="wch wch-${x.t}">${esc(x.txt)}</div>`).join('')}</td>
+    <td class="${c ? prioCls(c.pr) : ''}">${esc(c?.pr || '')}</td>
+    <td>${esc(c?.as || '')}</td>
+    <td class="${idle !== '' && idle >= W.opts.staleDays && !done ? 'age-old' : ''}">${c?.up ? esc(c.up.slice(5)) + `<div style="font-size:11px;color:var(--muted)">${idle} d ago</div>` : ''}</td>
+    <td>${esc(c?.du ? c.du : '')}</td>
+    <td>${fl.map(f => `<span class="wflag wf-${f.c}">${esc(f.t)}</span>`).join('')}</td>
+    <td>${g ? `<input class="wnote" data-n="${gid}|${k}" value="${esc(note)}" placeholder="note…" />` : `<span style="font-size:12px">${esc(note)}</span>`}</td>
+    <td>${g ? `<button class="xbtn" title="Remove from group" data-x="${gid}|${k}">✕</button>` : ''}</td></tr>`;
+}
+const W_HEAD = '<tr><th></th><th>Ticket</th><th>Summary</th><th>Status · change</th><th>Priority</th><th>Assignee</th><th>Updated</th><th>Due</th><th>Attention</th><th>My note</th><th></th></tr>';
+function wSection(head, keys, gid, sub){
+  const vis = wSortKeys(wFilterKeys(keys), gid), p = wProgress(keys);
+  const chg = keys.filter(k => wChanges(k).length).length, att = keys.filter(k => wNeedsAttention(k) && !(W.cur[k] && isClosedStatus(W.cur[k].st))).length;
+  const hidden = keys.length - vis.length;
+  return `<details class="tsg wsec" open><summary>${head}<span class="cnt">${keys.length}</span>
+      <span class="wprog" title="${p.r} of ${p.n} resolved"><i style="width:${p.pct}%"></i></span><span class="wpct">${p.r}/${p.n} resolved</span>
+      ${chg ? `<span class="wflag wf-st">${chg} changed</span>` : ''}${att ? `<span class="wflag wf-warn">${att} need attention</span>` : ''}
+      <span class="sub2">${sub || ''}</span></summary>
+    ${vis.length ? `<div class="bd" style="overflow:auto"><table class="wtable"><thead>${W_HEAD}</thead><tbody>${vis.map(k => wRow(k, gid)).join('')}</tbody></table></div>` : `<div class="empty" style="padding:18px">${keys.length ? 'All tickets hidden by the filters.' : 'No tickets yet — click ✎ Edit to paste ticket keys.'}</div>`}
+    ${hidden && vis.length ? `<div class="note" style="padding:0 16px 10px">${hidden} hidden by filters</div>` : ''}</details>`;
+}
+function renderWatch(){
+  if (!document.getElementById('tab-watch')) return;
+  if (W.sel && !wGroup(W.sel)) W.sel = null;
+  const all = wAllKeys();
+  /* group chips */
+  document.getElementById('wGroups').innerHTML = `<span class="wgchip ${W.sel === null ? 'on' : ''}" data-g="">All groups <span class="c">${all.length}</span></span>` +
+    W.groups.map(g => { const p = wProgress(g.tickets);
+      return `<span class="wgchip ${W.sel === g.id ? 'on' : ''}" data-g="${g.id}" style="--gc:${g.color}"><i style="background:${g.color}"></i>${esc(g.name)} <span class="c">${p.r}/${p.n}</span>${g.closeWatch.length ? ` <span class="c">★${g.closeWatch.length}</span>` : ''}</span>`; }).join('') +
+    `<button class="btn btn-primary btn-sm" id="wNew">＋ New group</button>`;
+  document.querySelectorAll('#wGroups .wgchip').forEach(c => c.onclick = () => { W.sel = c.dataset.g || null; renderWatch(); });
+  document.getElementById('wNew').onclick = () => wOpenEditor(null);
+  /* status + base select */
+  const bd = wBaseDays();
+  const bs = document.getElementById('wBase');
+  bs.innerHTML = bd.length ? bd.map(d => `<option value="${d}">${d}</option>`).join('') : '<option value="">no earlier snapshot yet</option>';
+  if (W.base && bd.includes(W.base)) bs.value = W.base; else W.base = '';
+  if (!W.busy) document.getElementById('wStatus').innerHTML = W.lastAt
+    ? `Last refresh <b>${W.lastAt.toLocaleString()}</b> · ${esc(W.src)}${W.missing.size ? ` · <span style="color:var(--bad)">${W.missing.size} key(s) not found</span>` : ''}`
+    : 'Not refreshed yet — click <b>↻ Refresh all groups</b>.';
+  /* KPIs (scope = selected group or all) */
+  const scope = W.sel ? wGroup(W.sel).tickets : all;
+  const open = scope.filter(k => W.cur[k] && !isClosedStatus(W.cur[k].st));
+  const kp = [
+    ['Tickets', scope.length, ''], ['Open', open.length, 'color:#1e40af'], ['Resolved', scope.length - open.length - scope.filter(k => !W.cur[k]).length, 'color:var(--ok)'],
+    ['Changed since ' + (wBaseSnap() ? wBaseSnap().date.slice(5) : '—'), scope.filter(k => wChanges(k).length).length, 'color:#7c3aed'],
+    ['★ Close watch', scope.filter(k => W.sel ? wGroup(W.sel).closeWatch.includes(k) : wIsWatch(k)).length, 'color:#ca8a04'],
+    ['Need attention', open.filter(wNeedsAttention).length, 'color:var(--bad)']
+  ];
+  document.getElementById('wKpis').innerHTML = kp.map(([l, n, s]) => `<div class="tsk" style="cursor:default"><div class="n" style="${s}">${n}</div><div class="l">${esc(l)}</div></div>`).join('');
+  /* toggles */
+  ['hideResolved', 'onlyWatch', 'onlyChanged'].forEach(o => document.getElementById('wo-' + o).checked = !!W.opts[o]);
+  document.getElementById('wStale').value = W.opts.staleDays;
+  document.getElementById('wAuto').checked = !!W.opts.autoRefresh;
+  document.querySelectorAll('#wView button').forEach(b => b.classList.toggle('on', b.dataset.v === W.view));
+  /* body */
+  const body = document.getElementById('wBody');
+  if (!W.groups.length){
+    body.innerHTML = `<div class="empty"><div style="font-size:42px">📌</div><div style="margin-top:10px;font-size:15px">No ticket groups yet.</div>
+      <div style="margin-top:6px;font-size:12.5px">Click <b>＋ New group</b> and paste ticket keys — or load a config.json that contains <code>ticketGroups</code>.</div></div>`;
+    return;
+  }
+  let html = '';
+  const groups = W.sel ? [wGroup(W.sel)] : W.groups;
+  if (W.view === 'group'){
+    html = groups.map(g => wSection(`<span class="wgdot" style="background:${g.color}"></span>${esc(g.name)} <button class="btn btn-ghost btn-sm wedit" data-e="${g.id}">✎ Edit / add tickets</button>`, g.tickets, g.id, esc(g.note))).join('');
+  } else {
+    const keys = [...new Set(groups.flatMap(g => g.tickets))], G = new Map();
+    const put = (k, h, key) => { if (!G.has(k)) G.set(k, { h, keys: [] }); G.get(k).keys.push(key); };
+    for (const k of keys){
+      const c = W.cur[k];
+      if (W.view === 'account'){ const ac = c?.ac || []; (ac.length ? ac : ['—']).forEach(a => put(a, a === '—' ? 'No account / not refreshed' : `<span class="acc">${esc(a)}</span> ${esc((ACC_BY_D[a] || ACC_BY_A[a] || {}).n || 'not in registry')}`, k)); }
+      else { const s = !c ? 'Not refreshed' : isClosedStatus(c.st) ? 'Resolved / Closed' : stageOf(c.st); put(s, esc(s), k); }
+    }
+    const ord = ['Blocked / On hold', 'Reopened / Rejected', 'To do', 'In progress', 'Review / QA', 'Resolved / Closed', 'Not refreshed'];
+    html = [...G.entries()].sort((a, b) => W.view === 'status' ? ord.indexOf(a[0]) - ord.indexOf(b[0]) : (a[0] === '—') - (b[0] === '—') || b[1].keys.length - a[1].keys.length)
+      .map(([, x]) => wSection(x.h, x.keys, null, '')).join('');
+  }
+  body.innerHTML = html;
+  body.querySelectorAll('.wedit').forEach(b => b.onclick = e => { e.preventDefault(); e.stopPropagation(); wOpenEditor(b.dataset.e); });
+  body.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { const [g, k] = b.dataset.w.split('|'); wToggleWatch(g, k); });
+  body.querySelectorAll('[data-x]').forEach(b => b.onclick = () => { const [g, k] = b.dataset.x.split('|'); if (confirm(`Remove ${k} from this group?`)) wRemoveKey(g, k); });
+  body.querySelectorAll('[data-n]').forEach(i => i.onchange = () => { const [g, k] = i.dataset.n.split('|'); wSetNote(g, k, i.value); });
+  wFillTsGroups();
+}
+/* ---------- copy daily update / export ---------- */
+function wScopeGroups(){ return W.sel ? [wGroup(W.sel)] : W.groups; }
+function wDailyText(){
+  const b = wBaseSnap(), lines = [`Ticket update — ${wToday()}${b ? ` (changes since ${b.date})` : ''}`];
+  for (const g of wScopeGroups()){
+    const p = wProgress(g.tickets);
+    lines.push('', `■ ${g.name} — ${p.r}/${p.n} resolved${g.note ? ' · ' + g.note : ''}`);
+    const keys = wSortKeys(g.tickets, g.id);
+    const changed = keys.filter(k => wChanges(k).length), att = keys.filter(k => !changed.includes(k) && wNeedsAttention(k) && !(W.cur[k] && isClosedStatus(W.cur[k].st)));
+    const quiet = keys.length - changed.length - att.length;
+    const ln = k => { const c = W.cur[k] || {};
+      return `  • ${g.closeWatch.includes(k) ? '★ ' : ''}${k} · ${c.st || '—'}${wChanges(k).length ? ' [' + wChanges(k).map(x => x.txt).join('; ') + ']' : ''} · ${c.s || ''}${c.as ? ' — ' + c.as : ''}${g.notes[k] ? ' · Note: ' + g.notes[k] : ''}${wNeedsAttention(k) ? ' ⚠ ' + wFlags(k).filter(f => f.c !== 'ok').map(f => f.t).join(', ') : ''}`; };
+    if (changed.length){ lines.push('  Changed:'); changed.forEach(k => lines.push(ln(k))); }
+    if (att.length){ lines.push('  Needs attention:'); att.forEach(k => lines.push(ln(k))); }
+    if (quiet > 0) lines.push(`  No change: ${quiet}`);
+  }
+  return lines.join('\n');
+}
+const W_TSV_HEAD = ['Group', 'Close watch', 'Ticket', 'Type', 'Summary', 'Status', 'Change', 'Priority', 'Assignee', 'Account(s)', 'Retailer', 'Created', 'Updated', 'Due', 'Resolved', 'Attention', 'Note', 'URL'];
+function wRowsFor(){
+  const out = [];
+  for (const g of wScopeGroups()) for (const k of wSortKeys(wFilterKeys(g.tickets), g.id)){
+    const c = W.cur[k] || {};
+    out.push([g.name, g.closeWatch.includes(k) ? '★' : '', k, c.ty || '', c.s || '', c.st || '', wChanges(k).map(x => x.txt).join('; '), c.pr || '', c.as || '',
+      (c.ac || []).join(' '), c.rt || '', c.cr || '', c.up || '', c.du || '', c.rs || '', wFlags(k).map(f => f.t).join('; '), g.notes[k] || '', c.u || '']);
+  }
+  return out;
+}
+async function wCopy(kind){
+  const txt = kind === 'daily' ? wDailyText() : kind === 'keys' ? [...new Set(wScopeGroups().flatMap(g => wFilterKeys(g.tickets)))].join('\n')
+    : kind === 'jql' ? `key in (${[...new Set(wScopeGroups().flatMap(g => g.tickets))].join(', ')}) ORDER BY updated DESC`
+    : [W_TSV_HEAD.join('\t'), ...wRowsFor().map(r => r.map(x => String(x).replace(/[\t\n]/g, ' ')).join('\t'))].join('\n');
+  await navigator.clipboard.writeText(txt);
+  wFlash({ daily: '✓ Daily update copied (paste into Teams / email)', keys: '✓ Keys copied', jql: '✓ JQL copied — paste into Jira issue search', tsv: '✓ Table copied — paste into Excel' }[kind]);
+}
+async function wXlsx(){
+  const rows = wRowsFor(); if (!rows.length) return;
+  const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet('Ticket groups');
+  const Wd = [18, 8, 13, 12, 60, 20, 34, 11, 20, 18, 22, 11, 11, 11, 11, 30, 30, 40];
+  ws.columns = W_TSV_HEAD.map((h, i) => ({ header: h, width: Wd[i] }));
+  rows.forEach(r => { const x = ws.addRow(r); if (r[17]) x.getCell(3).value = { text: r[2], hyperlink: r[17] };
+    if (r[6]) x.getCell(7).font = { bold: true, color: { argb: 'FF7C3AED' } }; if (r[1]) x.getCell(2).font = { bold: true, color: { argb: 'FFCA8A04' } }; });
+  ws.getRow(1).eachCell(c => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } }; });
+  ws.views = [{ state: 'frozen', ySplit: 1 }]; ws.autoFilter = { from: 'A1', to: 'R1' };
+  const buf = await wb.xlsx.writeBuffer(), a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  a.download = 'ticket_groups_' + wToday() + '.xlsx'; a.click();
+}
+/* ---------- add from Ticket search ---------- */
+function wFillTsGroups(){
+  const s = document.getElementById('tsToGroup'); if (!s) return;
+  const prev = s.value;
+  s.innerHTML = '<option value="">☆ Add shown tickets to group…</option>' + W.groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('') + '<option value="__new">＋ New group…</option>';
+  if ([...s.options].some(o => o.value === prev)) s.value = prev;
+}
+function wAddFromSearch(){
+  const s = document.getElementById('tsToGroup'), v = s.value; if (!v) return;
+  const keys = tsVisible().map(i => i.key); s.value = '';
+  if (!keys.length){ tsFlash('No tickets shown'); return; }
+  let g;
+  if (v === '__new'){ const n = prompt('Name of the new group:', `Group ${W.groups.length + 1}`); if (!n) return; g = wNormGroup({ name: n, tickets: [] }, W.groups.length); W.groups.push(g); }
+  else g = wGroup(v);
+  const before = g.tickets.length; g.tickets = [...new Set([...g.tickets, ...keys])];
+  keys.forEach(k => { const i = TS.res.find(x => x.key === k); if (i && !W.cur[k]) W.cur[k] = wSnapOf(i); });
+  wSave(); renderWatch(); tsFlash(`✓ ${g.tickets.length - before} added to “${g.name}”`);
+}
+/* ---------- wiring ---------- */
+function watchInit(){ wLoad(); if (!W.groups.length) watchSeedFromCfg(CFG, false); if (!W.sel && W.groups[0]) W.sel = null; renderWatch(); }
+document.getElementById('wRefresh').onclick = () => watchRefresh();
+document.getElementById('wBase').onchange = e => { W.base = e.target.value; renderWatch(); };
+document.querySelectorAll('#wView button').forEach(b => b.onclick = () => { W.view = b.dataset.v; renderWatch(); });
+['hideResolved', 'onlyWatch', 'onlyChanged'].forEach(o => document.getElementById('wo-' + o).onchange = e => { W.opts[o] = e.target.checked; wSaveOpts(); renderWatch(); });
+document.getElementById('wStale').onchange = e => { W.opts.staleDays = Math.max(1, parseInt(e.target.value) || 5); wSaveOpts(); renderWatch(); };
+document.getElementById('wAuto').onchange = e => { W.opts.autoRefresh = e.target.checked; wSaveOpts(); };
+document.getElementById('wFilter').oninput = () => renderWatch();
+document.getElementById('wCopyDaily').onclick = () => wCopy('daily');
+document.getElementById('wCopyTsv').onclick = () => wCopy('tsv');
+document.getElementById('wCopyKeys').onclick = () => wCopy('keys');
+document.getElementById('wCopyJql').onclick = () => wCopy('jql');
+document.getElementById('wXlsx').onclick = wXlsx;
+document.getElementById('wSaveCfg').onclick = wSaveToConfig;
+document.getElementById('wExport').onclick = () => wDownload('ticket-groups.json', { ticketGroups: wGroupsForCfg() });
+document.getElementById('wImport').onclick = () => document.getElementById('fileWG').click();
+document.getElementById('fileWG').onchange = e => { if (e.target.files[0]) wImportGroups(e.target.files[0]); e.target.value = ''; };
+document.getElementById('wgClose').onclick = () => document.getElementById('wgMask').classList.remove('on');
+document.getElementById('wgSave').onclick = wSaveEditor;
+document.getElementById('wgDel').onclick = wDeleteGroup;
+document.getElementById('wgKeys').oninput = wParsePreview;
+document.getElementById('tsToGroup').onchange = wAddFromSearch;
+document.querySelector('.tab[data-tab="watch"]').addEventListener('click', () => {
+  if (W.opts.autoRefresh && !W.busy && wAllKeys().length && (J.cfg.token || J.issues.length) && wLocalDate(W.lastAt) !== wToday()) watchRefresh();
+});
 
 </script>
 </body>
